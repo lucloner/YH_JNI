@@ -1,0 +1,208 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        jcenter()
+
+    }
+    dependencies {
+//        classpath 'org.springframework.boot:spring-boot-gradle-plugin:1.0.2.RELEASE'
+//        classpath 'org.springframework:springloaded:1.2.0.RELEASE'
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.jetbrains.kotlin.jvm' version '1.3.60'
+    id 'cpp'
+    id 'cunit-test-suite'
+}
+
+group 'net.vicp.biggee.jni'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'http://repo.spring.io/milestone'
+    }
+
+    maven {
+        url 'http://repo.spring.io/libs-snapshot'
+    }
+}
+
+test {
+    jvmArgs += ["-Xmx1024M"]
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(dir: 'jnilibs', include: ['*.dll'])
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
+
+compileKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+compileTestKotlin {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+println "Building on OS: " + System.properties['os.name']
+println "Using JDK: " + System.properties['java.home']
+
+def SYS_INCLUDE_DIR = this.properties['system.include.dir']
+def SYS_LOCAL_INCLUDE_DIR = this.properties['system.local.include.dir']
+def JNI_INCLUDE_DIR = this.properties['jni.include.dir']
+def JNI_LIB_DIR = this.properties['jni.lib.dir']
+def JNI_INCLUDE_DIR_HEADERS = JNI_INCLUDE_DIR + "\\win32"
+
+println "Using system include directory: " + SYS_INCLUDE_DIR
+println "Using system local include directory: " + SYS_LOCAL_INCLUDE_DIR
+println "Using JNI include directory: " + JNI_INCLUDE_DIR
+println "Using JNI lib directory: " + JNI_LIB_DIR
+println "Using JNI lib headers: " + JNI_INCLUDE_DIR_HEADERS
+println "Project Dir: " + projectDir
+//println "java.library.path: " + this.properties['java.library.path']
+//System.properties['java.library.path']+=';'+this.properties['java.library.path']
+//println "system java.library.path: " + System.properties['java.library.path']
+
+def cHeaders = {
+    srcDir "src/main/jni/headers"
+    srcDir JNI_LIB_DIR
+    srcDir JNI_INCLUDE_DIR_HEADERS
+    include "**/*.h"
+}
+
+def cBuildTypes = {
+    debug
+    release
+}
+
+model {
+    components {
+        hello(NativeLibrarySpec) {
+            sources {
+                c {
+                    source {
+                        srcDirs 'src/main/jni/c'
+                        include 'hello.c'
+                    }
+                    exportedHeaders cHeaders
+                }
+            }
+            buildTypes cBuildTypes
+
+            targetPlatform "x64"
+        }
+
+        hello01(NativeLibrarySpec) {
+            sources {
+                c {
+                    source {
+                        srcDirs 'src/main/jni/c'
+                        include 'hello01.c'
+                    }
+                    exportedHeaders cHeaders
+                }
+            }
+            buildTypes cBuildTypes
+
+            targetPlatform "x64"
+        }
+    }
+    binaries {
+        all {
+            checkedBy $.tasks.copyNativeDeps
+        }
+    }
+    platforms {
+        x64 {
+            architecture "x86_64"
+            println "x64"
+        }
+        x86 {
+            architecture "x86"
+            println "x86"
+        }
+    }
+
+    toolChains {
+        visualCpp(VisualCpp) {
+
+        }
+    }
+}
+
+task copyNativeDeps(type: Copy, dependsOn: ['helloReleaseSharedLibrary', 'hello01ReleaseSharedLibrary']) {
+    def fromDir = {
+        rootProject.files("$buildDir/libs/hello/shared/release")
+        rootProject.files("$buildDir/libs/hello01/shared/release")
+    }
+    def toDir = rootProject.file('jnilibs')
+    from fromDir
+    into toDir
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/java'
+        }
+        resources {
+            srcDir 'src/resources'
+        }
+        dependencies {
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'HelloWorld'
+    }
+}
+
+task download(type: Copy) {
+    from configurations.runtime
+    into 'lib'
+}
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+}
+
+//copying all dependencies attached to 'compile' into a specific folder
+task copyAllDependencies(type: Copy) {
+    //referring to the 'compile' configuration
+    from configurations.compile
+    into 'allLibs'
+}
+
+println '-ANALYZE------------------------------'
+for (v in model) {
+    println v.report()
+}
+println components["java"].name
+ModelReport
+
+def abc(NativeLibrarySpec) {
+        sources {
+            c {
+                source {
+                    srcDirs 'src/main/jni/c'
+                    include 'hello.c'
+                }
+                exportedHeaders cHeaders
+            }
+        }
+        buildTypes cBuildTypes
+
+        targetPlatform "x64"
+    }
+
+
+//println abc
