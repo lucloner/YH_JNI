@@ -81,8 +81,6 @@ def template_binaries_all={
     if (toolChain in VisualCpp) {
         cppCompiler.args "/Zi"
         cppCompiler.args "/VERBOSE"
-        cppCompiler.args "/EXPORTS"
-        cppCompiler.args "/SYMBOLS"
         linker.args "/VERBOSE"
     }
 
@@ -198,7 +196,29 @@ model {
             targetPlatform "x64"
         }
 
+        BlankPage_Detect(NativeLibrarySpec) {
+            def cName=it.getBaseName()
+            def cDllName=cName+'.dll'
+            def cDllPath="$buildDir/libs/$cName/shared/release"
+            def cTask="${cName}ReleaseSharedLibrary"
+            //批量导入使用
+            println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
+            filelist.add(cDllName)
+            dirlist.add(cDllPath)
+            $.tasks.copyNativeDeps.dependsOn cTask
 
+            sources {
+                cpp.source{
+                    srcDirs 'src/main/jni/'+cName
+                    include cName+'.cpp'
+                }
+                cpp.exportedHeaders cHeaders
+            }
+
+            binaries.all template_binaries_all
+            buildTypes template_buildTypes
+            targetPlatform "x64"
+        }
     }
 
     platforms {

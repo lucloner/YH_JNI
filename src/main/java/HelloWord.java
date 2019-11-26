@@ -1,4 +1,5 @@
-import com.BlankPageDetectDLL;
+
+import com.IdentityCard;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -28,11 +29,7 @@ class HelloWorld {
     public static void main(String[] args) {
         new HelloWorld().print();
         new HelloWorld01().print();
-        try {
-            BlankPageDetectDLL.BlankPageDetect("assert/1.jpg", "libs");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        IdentityCard.IdentityCardTrans("assert/1.jpg", "assert/out-1.jpg");
     }
 
     public static void addDir(String s) throws IOException {
