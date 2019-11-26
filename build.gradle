@@ -67,59 +67,140 @@ println "Using JNI include directory: " + JNI_INCLUDE_DIR
 println "Using JNI lib directory: " + JNI_LIB_DIR
 println "Using JNI lib headers: " + JNI_INCLUDE_DIR_HEADERS
 println "Project Dir: " + projectDir
-//println "java.library.path: " + this.properties['java.library.path']
-//System.properties['java.library.path']+=';'+this.properties['java.library.path']
-//println "system java.library.path: " + System.properties['java.library.path']
 
-def cHeaders = {
-    srcDir "src/main/jni/headers"
-    srcDir JNI_LIB_DIR
-    srcDir JNI_INCLUDE_DIR_HEADERS
-    include "**/*.h"
+def template_binaries_all={
+    checkedBy tasks.copyNativeDeps
+    // Define a preprocessor macro for every binary
+    cppCompiler.define "NDEBUG"
+
+    // Define toolchain-specific compiler and linker options
+    if (toolChain in Gcc) {
+        cppCompiler.args "-O2", "-fno-access-control"
+        linker.args "-Xlinker", "-S"
+    }
+    if (toolChain in VisualCpp) {
+        cppCompiler.args "/Zi"
+        cppCompiler.args "/VERBOSE"
+        cppCompiler.args "/EXPORTS"
+        cppCompiler.args "/SYMBOLS"
+        linker.args "/VERBOSE"
+    }
+
+    linker.args "src/main/jni/opencv-4.1.2/build/x64/vc15/lib/opencv_world412.lib"
+
+    if (targetPlatform.operatingSystem.macOsX) {
+        cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+        cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/darwin"
+        cCompiler.args '-mmacosx-version-min=10.4'
+        linker.args '-mmacosx-version-min=10.4'
+    } else if (targetPlatform.operatingSystem.linux) {
+        cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+        cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/linux"
+        cCompiler.args '-D_FILE_OFFSET_BITS=64'
+    } else if (targetPlatform.operatingSystem.windows) {
+        cCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+        cCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
+        linker.args "Shlwapi.lib", "Advapi32.lib"
+    } else if (targetPlatform.operatingSystem.freeBSD) {
+        cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+        cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/freebsd"
+    }
 }
-
-def cBuildTypes = {
+def template_buildTypes={
     debug
     release
+}
+def filelist=new java.util.HashSet<String>()
+def dirlist=new java.util.HashSet<String>()
+def opencv_Headers=this.fileTree(dir:'src/main/jni/opencv-4.1.2',include:'**/*.h*')
+for(opencv_h in opencv_Headers){
+    println 'found header: '+opencv_h
+}
+def cHeaders = {
+    srcDir "src/main/jni/headers"
+    srcDir "src/main/jni/opencv-4.1.2/build/include"
+    srcDir JNI_LIB_DIR
+    srcDir JNI_INCLUDE_DIR_HEADERS
+    include "**/*.h*"
 }
 
 model {
     components {
         hello(NativeLibrarySpec) {
-            sources {
-                c {
-                    source {
-                        srcDirs 'src/main/jni/c'
-                        include 'hello.c'
-                    }
-                    exportedHeaders cHeaders
-                }
-            }
-            buildTypes cBuildTypes
+            def cName=it.getBaseName()
+            def cDllName=cName+'.dll'
+            def cDllPath="$buildDir/libs/$cName/shared/release"
+            def cTask="${cName}ReleaseSharedLibrary"
+            //批量导入使用
+            println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
+            filelist.add(cDllName)
+            dirlist.add(cDllPath)
+            $.tasks.copyNativeDeps.dependsOn cTask
 
+            sources {
+                c.source{
+                    srcDirs 'src/main/jni/c'
+                    include cName+'.c'
+                }
+                c.exportedHeaders cHeaders
+            }
+
+            binaries.all template_binaries_all
+            buildTypes template_buildTypes
             targetPlatform "x64"
         }
 
+        //模板
         hello01(NativeLibrarySpec) {
-            sources {
-                c {
-                    source {
-                        srcDirs 'src/main/jni/c'
-                        include 'hello01.c'
-                    }
-                    exportedHeaders cHeaders
-                }
-            }
-            buildTypes cBuildTypes
+            def cName=it.getBaseName()
+            def cDllName=cName+'.dll'
+            def cDllPath="$buildDir/libs/$cName/shared/release"
+            def cTask="${cName}ReleaseSharedLibrary"
+            //批量导入使用
+            println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
+            filelist.add(cDllName)
+            dirlist.add(cDllPath)
+            $.tasks.copyNativeDeps.dependsOn cTask
 
+            sources {
+                c.source{
+                    srcDirs 'src/main/jni/c'
+                    include cName+'.c'
+                }
+                c.exportedHeaders cHeaders
+            }
+            binaries.all template_binaries_all
+            buildTypes template_buildTypes
             targetPlatform "x64"
         }
-    }
-    binaries {
-        all {
-            checkedBy $.tasks.copyNativeDeps
+
+        IdentityCard(NativeLibrarySpec) {
+            def cName=it.getBaseName()
+            def cDllName=cName+'.dll'
+            def cDllPath="$buildDir/libs/$cName/shared/release"
+            def cTask="${cName}ReleaseSharedLibrary"
+            //批量导入使用
+            println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
+            filelist.add(cDllName)
+            dirlist.add(cDllPath)
+            $.tasks.copyNativeDeps.dependsOn cTask
+
+            sources {
+                cpp.source{
+                    srcDirs 'src/main/jni/'+cName
+                    include cName+'.cpp'
+                }
+                cpp.exportedHeaders cHeaders
+            }
+
+            binaries.all template_binaries_all
+            buildTypes template_buildTypes
+            targetPlatform "x64"
         }
+
+
     }
+
     platforms {
         x64 {
             architecture "x86_64"
@@ -133,19 +214,27 @@ model {
 
     toolChains {
         visualCpp(VisualCpp) {
-
+            // Specify the installDir if Visual Studio cannot be located
+            // installDir "C:/Apps/Microsoft Visual Studio 10.0"
         }
+//        gcc(Gcc) {
+            // Uncomment to use a GCC install that is not in the PATH
+//             path "D:/tool-chains/mingw-w64/mingw64/bin"
+//        }
+//        clang(Clang){
+//            path "D:/tool-chains/LLVM/bin"
+//        }
     }
 }
 
-task copyNativeDeps(type: Copy, dependsOn: ['helloReleaseSharedLibrary', 'hello01ReleaseSharedLibrary']) {
-    def fromDir = {
-        rootProject.files("$buildDir/libs/hello/shared/release")
-        rootProject.files("$buildDir/libs/hello01/shared/release")
-    }
+task copyNativeDeps(type: Copy) {
     def toDir = rootProject.file('jnilibs')
-    from fromDir
+    from dirlist
     into toDir
+}
+task clearNativeDeps(type: Delete) {
+    def toDel = file('jnilibs').listFiles()
+    delete toDel
 }
 
 sourceSets {
@@ -167,42 +256,5 @@ jar {
     }
 }
 
-task download(type: Copy) {
-    from configurations.runtime
-    into 'lib'
-}
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
-}
-
-//copying all dependencies attached to 'compile' into a specific folder
-task copyAllDependencies(type: Copy) {
-    //referring to the 'compile' configuration
-    from configurations.compile
-    into 'allLibs'
-}
-
-println '-ANALYZE------------------------------'
-for (v in model) {
-    println v.report()
-}
-println components["java"].name
-ModelReport
-
-def abc(NativeLibrarySpec) {
-        sources {
-            c {
-                source {
-                    srcDirs 'src/main/jni/c'
-                    include 'hello.c'
-                }
-                exportedHeaders cHeaders
-            }
-        }
-        buildTypes cBuildTypes
-
-        targetPlatform "x64"
-    }
-
-
-//println abc
+tasks.compileJava.dependsOn 'copyNativeDeps'
+tasks.clean.dependsOn 'clearNativeDeps'

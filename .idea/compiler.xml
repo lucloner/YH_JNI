@@ -2,6 +2,7 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel>
+      <module name="YH_JNI.c" target="1.8" />
       <module name="YH_JNI.dependencies" target="1.8" />
     </bytecodeTargetLevel>
   </component>

@@ -1,3 +1,5 @@
+import com.BlankPageDetectDLL;
+
 import java.io.IOException;
 import java.lang.reflect.Field;
 
@@ -12,15 +14,25 @@ class HelloWorld {
     static {
         try {
             addDir("jnilibs");
+            addDir("src/main/jni/opencv-4.1.2/build/x64/vc15/bin");
+            System.loadLibrary("opencv_world412");
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    static {
         System.loadLibrary("hello");
     }
 
     public static void main(String[] args) {
         new HelloWorld().print();
         new HelloWorld01().print();
+        try {
+            BlankPageDetectDLL.BlankPageDetect("assert/1.jpg", "libs");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static void addDir(String s) throws IOException {
