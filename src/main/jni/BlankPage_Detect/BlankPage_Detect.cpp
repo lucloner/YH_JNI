@@ -324,6 +324,8 @@ int CalcDegree(const Mat &srcImage, double &degree)
 
       double a = cos(theta), b = sin(theta);
 
+      //cout << theta << endl;
+
       //只选角度最小的作为旋转角度
       if ((theta < 0.3925 &&theta >= 0.0) || (theta < 1.9625 &&theta>1.1775) || (theta <3.14 &&theta>2.7475))
       {
@@ -339,18 +341,8 @@ int CalcDegree(const Mat &srcImage, double &degree)
       linesizever++;
     }
 
-    //释放向量内存
-    vector<Vec2f>().swap(lines);
-
-    midImage.release();
-
-    float average=0.0;
     if (linesizever > 0)
     {
-      average = sum / linesizever; //对所有角度求平均，这样做旋转效果会更好
-                     //cout << "average theta:" << average << endl;
-      double angle = DegreeTrans(average) - 90;
-      degree = angle;
       return 0;
     }
     else
@@ -377,6 +369,37 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
         cout << "[file error]:" << e.msg << endl;
         return -1;
     }
+
+    //pyrMeanShiftFiltering(sourceImage,src, 25, 10);
+    cvtColor(sourceImage,src, COLOR_BGR2GRAY);
+    threshold(src, src, 127, 255, THRESH_BINARY);
+    //imshow("Black white image", src);
+    //waitKey(0);
+
+    int black=0,white=0,other=0;
+    for(int i=0;i<src.rows;i++){
+        for(int j=0;j<src.cols/2;j++){
+            uchar t=src.at<uchar>(i,j);
+            int c=(int)t;
+            //cout << c << endl;
+            if(c==255){
+                white++;
+            }
+            else if(c==0){
+                black++;
+            }
+            else{
+                other++;
+            }
+        }
+    }
+    float ratio=(float)black/white;
+    //cout << ratio << "," << black << "," << white << "," << other << endl;
+
+    if(ratio< 1e-3 ){
+        return 1;
+    }
+
     Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
     src = sourceImage(rect);
 
