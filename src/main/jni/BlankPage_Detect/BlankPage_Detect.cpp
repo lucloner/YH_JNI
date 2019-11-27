@@ -195,7 +195,7 @@ int CalcDegree(const Mat &srcImage, double &degree)
 	try{
 		AdaptiveFindThreshold(&midImage, &low_thresh, &high_thresh);
 	}catch (Exception e) {
-        cout << "[AdaptiveFindThreshold]:" << e.msg << endl;
+        cout << "[CalcDegree]:" << e.msg << endl;
     }
 
 	if (high_thresh < 2)
@@ -427,7 +427,7 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     try{
         result = CalcDegree(src, degree);
 	}catch (Exception e) {
-        cout << "[AdaptiveFindThreshold]:" << e.msg << endl;
+        cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
     }
 
     return  result;
