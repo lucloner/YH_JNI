@@ -1,5 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include"com_BlankPageDetectDLL.h"
+#include "com_BlankPageDetectDLL.h"
 #include "opencv2/opencv.hpp"
 #include "opencv2/imgproc/imgproc_c.h"
 #include <iostream>
@@ -14,45 +14,8 @@
 #include <math.h>
 #include <string.h>
 
-
-//#pragma warning(disable:4113)
-//
-//jmp_buf mark;
-//int fperr;
-//void __cdecl  fphandler(int num);
-//void fpcheck(void);
-
-
 using namespace cv;
 using namespace std;
-
-//class CException
-//{
-//public:
-//	string msg;
-//	CException(string s) : msg(s) {}
-//};
-//
-//int checkExc(JNIEnv *env) {
-//	if (env->ExceptionCheck()) {
-//		env->ExceptionDescribe(); // writes to logcat
-//		env->ExceptionClear();
-//		return 1;
-//	}
-//	return -1;
-//}
-//
-//void JNU_ThrowByName(JNIEnv *env, const char *name, const char *msg)
-//{
-//	// 查找异常类
-//	jclass cls = env->FindClass(name);
-//	/* 如果这个异常类没有找到，VM会抛出一个NowClassDefFoundError异常 */
-//	if (cls != NULL) {
-//		env->ThrowNew(cls, msg);  // 抛出指定名字的异常
-//	}
-//	/* 释放局部引用 */
-//	env->DeleteLocalRef(cls);
-//}
 
 bool SetResolution(const char* path, int iResolution)
 {
@@ -396,13 +359,6 @@ int CalcDegree(const Mat &srcImage, double &degree)
     }
 }
 
-//static jmp_buf buf;
-//
-//void exception_handler(int signum) {
-//	printf("ERROR signal is %d", signum);
-//	longjmp(buf, 1);
-//}
-
 JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
 (JNIEnv *env, jclass cls, jstring SrcPath)
 {
@@ -432,38 +388,3 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
 
     return  result;
 }
-
-
-//void fphandler(int num)
-//{
-//	fperr = num;
-//	_fpreset();
-//	longjmp(mark, -1);
-//
-//}
-//
-//void fpcheck(void)
-//{
-//	char fpstr[30];
-//	//switch (fperr)
-//	//{
-//	//case _FPE_INVALID:
-//	//	strcpy(fpstr, "Invalid number");
-//	//	break;
-//
-//	//case _FPE_OVERFLOW:
-//	//	strcpy(fpstr, "Overflow");
-//	//	break;
-//	//case _FPE_UNDERFLOW:
-//	//	strcpy(fpstr, "UnderFlow");
-//	//	break;
-//	//case _FPE_ZERODIVIDE:
-//	//	strcpy(fpstr, "Divide by zero");
-//	//	break;
-//	//}
-//	printf("Error");
-//	//return 3;
-//
-//
-//}
-

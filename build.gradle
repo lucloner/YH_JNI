@@ -245,6 +245,54 @@ model {
             buildTypes template_buildTypes
             targetPlatform "x64"
         }
+
+        RemoveBlackBorder(NativeLibrarySpec) {
+            def cName=it.getBaseName()
+            def cDllName=cName+'.dll'
+            def cDllPath="$buildDir/libs/$cName/shared/release"
+            def cTask="${cName}ReleaseSharedLibrary"
+            //批量导入使用
+            println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
+            filelist.add(cDllName)
+            dirlist.add(cDllPath)
+            $.tasks.copyNativeDeps.dependsOn cTask
+
+            sources {
+                cpp.source{
+                    srcDirs 'src/main/jni/'+cName
+                    include cName+'.cpp'
+                }
+                cpp.exportedHeaders cHeaders
+            }
+
+            binaries.all template_binaries_all
+            buildTypes template_buildTypes
+            targetPlatform "x64"
+        }
+
+        RectifyUnlineDll(NativeLibrarySpec) {
+            def cName=it.getBaseName()
+            def cDllName=cName+'.dll'
+            def cDllPath="$buildDir/libs/$cName/shared/release"
+            def cTask="${cName}ReleaseSharedLibrary"
+            //批量导入使用
+            println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
+            filelist.add(cDllName)
+            dirlist.add(cDllPath)
+            $.tasks.copyNativeDeps.dependsOn cTask
+
+            sources {
+                cpp.source{
+                    srcDirs 'src/main/jni/'+cName
+                    include cName+'.cpp'
+                }
+                cpp.exportedHeaders cHeaders
+            }
+
+            binaries.all template_binaries_all
+            buildTypes template_buildTypes
+            targetPlatform "x64"
+        }
     }
 
     platforms {

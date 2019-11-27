@@ -2,6 +2,8 @@ package net.vicp.biggee.jni;
 
 import com.BlankPageDetectDLL;
 import com.IdentityCard;
+import com.JniDemo;
+import com.RemoveBlackBorderDll;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -24,15 +26,13 @@ public class YH_JNI_main {
 
     public static void main(String[] args) {
         initJnilibPath();
-        IdentityCard.IdentityCardTrans("assert/1.jpg", "assert/out-1.jpg");
         IdentityCard.IdentityCardTrans("assert/2.jpg", "assert/out-2.jpg");
-        IdentityCard.IdentityCardTrans("assert/3.jpg", "assert/out-3.jpg");
         System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/1.jpg"));
         System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/2.jpg"));
         System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/3.jpg"));
-        System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/out-1.jpg"));
-        System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/out-2.jpg"));
-        System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/out-3.jpg"));
+        RemoveBlackBorderDll.RemoveBlackBorder("assert/4.jpg", "assert/out-4.jpg");
+        JniDemo.ImageRecify("assert/4.jpg", "assert/out-4-1.jpg");
+        JniDemo.RemoveUnline("assert/4.jpg", "assert/out-4-2.jpg", 0, 0, 2366, 2638);
     }
 
     public static void addDir(String s) throws IOException {
