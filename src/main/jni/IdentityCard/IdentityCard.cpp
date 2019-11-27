@@ -1,10 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include"com_IdentityCard.h"
-#include "opencv2/imgproc/imgproc.hpp"
-#include "opencv2/highgui/highgui.hpp"
+#include "com_IdentityCard.h"
+#include "opencv2/opencv.hpp"
+#include "opencv2/imgproc/imgproc_c.h"
 #include <iostream>
-//#include "cv.h"
-//#include "highgui.h"
 #include <fcntl.h>
 #include <io.h>
 #include <math.h>
@@ -16,10 +14,7 @@
 #include <math.h>
 #include <string.h>
 #include <fstream>  
-#include <string>  
-#include <iostream>
-#include <opencv2\imgproc\types_c.h>
-#include <com_IdentityCard.h>
+#include <string>
 
 
 //#pragma warning(disable:4113)

@@ -55,14 +55,10 @@ compileTestKotlin {
 println "Building on OS: " + System.properties['os.name']
 println "Using JDK: " + System.properties['java.home']
 
-def SYS_INCLUDE_DIR = this.properties['system.include.dir']
-def SYS_LOCAL_INCLUDE_DIR = this.properties['system.local.include.dir']
 def JNI_INCLUDE_DIR = this.properties['jni.include.dir']
 def JNI_LIB_DIR = this.properties['jni.lib.dir']
 def JNI_INCLUDE_DIR_HEADERS = JNI_INCLUDE_DIR + "\\win32"
 
-println "Using system include directory: " + SYS_INCLUDE_DIR
-println "Using system local include directory: " + SYS_LOCAL_INCLUDE_DIR
 println "Using JNI include directory: " + JNI_INCLUDE_DIR
 println "Using JNI lib directory: " + JNI_LIB_DIR
 println "Using JNI lib headers: " + JNI_INCLUDE_DIR_HEADERS
@@ -79,13 +75,42 @@ def template_binaries_all={
         linker.args "-Xlinker", "-S"
     }
     if (toolChain in VisualCpp) {
-        cppCompiler.args "/Zi"
+        cCompiler.args "/VERBOSE"
+        cCompiler.args "/Wall"
         cppCompiler.args "/VERBOSE"
-        cppCompiler.args "/EHsc"
+        cppCompiler.args "/Wall"
         linker.args "/VERBOSE"
+        linker.args "/ALIGN 4096"
+        linker.args "/DLL"
+        linker.args "/LARGEADDRESSAWARE"
+//        cCompiler.args "/Zi"
+//        cCompiler.args "/EHa"
+//        cppCompiler.args "/Zi"
+//        cppCompiler.args "/EHa"
+//        cppCompiler.args "/O2"
+//        cppCompiler.args "/GL"
+        linker.args "src/main/jni/opencv-4.1.2/build/x64/vc15/lib/opencv_world412.lib"
     }
 
-    linker.args "src/main/jni/opencv-4.1.2/build/x64/vc15/lib/opencv_world412.lib"
+    if (toolChain in Clang) {
+        cCompiler.args "-g"
+        cCompiler.args "-fparse-all-comments"
+        cCompiler.args "-dD"
+        cCompiler.args "-dI"
+        cCompiler.args "-dM"
+        cCompiler.args "-E"
+        cCompiler.args "-fsanitize=address"
+        cCompiler.args "-v"
+        linker.args "-v"
+    }
+
+    if (toolChain in Gcc) {
+        cCompiler.args "-fPIC"
+        cCompiler.args "-v"
+        cppCompiler.args "-fPIC"
+        cppCompiler.args "-v"
+        linker.args "-v"
+    }
 
     if (targetPlatform.operatingSystem.macOsX) {
         cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
@@ -99,7 +124,7 @@ def template_binaries_all={
     } else if (targetPlatform.operatingSystem.windows) {
         cCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
         cCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
-        linker.args "Shlwapi.lib", "Advapi32.lib"
+//        linker.args "Shlwapi.lib", "Advapi32.lib"
     } else if (targetPlatform.operatingSystem.freeBSD) {
         cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
         cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/freebsd"
@@ -236,13 +261,13 @@ model {
             // Specify the installDir if Visual Studio cannot be located
             // installDir "C:/Apps/Microsoft Visual Studio 10.0"
         }
-//        gcc(Gcc) {
-            // Uncomment to use a GCC install that is not in the PATH
-//             path "D:/tool-chains/mingw-w64/mingw64/bin"
-//        }
-//        clang(Clang){
-//            path "D:/tool-chains/LLVM/bin"
-//        }
+        gcc(Gcc) {
+             //Uncomment to use a GCC install that is not in the PATH
+             path "D:/tool-chains/mingw-w64/mingw64/bin"
+        }
+        clang(Clang){
+            path "D:/tool-chains/LLVM/bin"
+        }
     }
 }
 
