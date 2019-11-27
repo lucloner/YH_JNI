@@ -81,6 +81,7 @@ def template_binaries_all={
     if (toolChain in VisualCpp) {
         cppCompiler.args "/Zi"
         cppCompiler.args "/VERBOSE"
+        cppCompiler.args "/EHsc"
         linker.args "/VERBOSE"
     }
 
@@ -110,10 +111,10 @@ def template_buildTypes={
 }
 def filelist=new java.util.HashSet<String>()
 def dirlist=new java.util.HashSet<String>()
-def opencv_Headers=this.fileTree(dir:'src/main/jni/opencv-4.1.2',include:'**/*.h*')
-for(opencv_h in opencv_Headers){
-    println 'found header: '+opencv_h
-}
+//def opencv_Headers=this.fileTree(dir:'src/main/jni/opencv-4.1.2',include:'**/*.h*')
+//for(opencv_h in opencv_Headers){
+//    println 'found header: '+opencv_h
+//}
 def cHeaders = {
     srcDir "src/main/jni/headers"
     srcDir "src/main/jni/opencv-4.1.2/build/include"
@@ -224,11 +225,9 @@ model {
     platforms {
         x64 {
             architecture "x86_64"
-            println "x64"
         }
         x86 {
             architecture "x86"
-            println "x86"
         }
     }
 
@@ -251,6 +250,8 @@ task copyNativeDeps(type: Copy) {
     def toDir = rootProject.file('jnilibs')
     from dirlist
     into toDir
+    from file("src/main/jni/opencv-4.1.2/build/x64/vc15/bin/opencv_world412.dll")
+    into toDir
 }
 task clearNativeDeps(type: Delete) {
     def toDel = file('jnilibs').listFiles()
@@ -272,7 +273,7 @@ sourceSets {
 
 jar {
     manifest {
-        attributes 'Main-Class': 'HelloWorld'
+        attributes 'Main-Class': 'net.vicp.biggee.jni.YH_JNI_main'
     }
 }
 
