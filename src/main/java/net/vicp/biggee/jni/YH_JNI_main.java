@@ -1,10 +1,8 @@
 package net.vicp.biggee.jni;
 
 import com.BlankPageDetectDLL;
-import com.IdentityCard;
-import com.JniDemo;
-import com.RemoveBlackBorderDll;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 
@@ -26,17 +24,20 @@ public class YH_JNI_main {
 
     public static void main(String[] args) {
         initJnilibPath();
-//        File file = new File("assert\\test");
-//        for (File listFile : file.listFiles()) {
-//            System.out.println(""+listFile+":"+new BlankPageDetectDLL().BlankPageDetect(listFile.getAbsolutePath()));
-//        }
+        File file = new File("assert\\test");
+        Long now = System.currentTimeMillis();
+        for (File listFile : file.listFiles()) {
+//            RemoveBlackBorderDll.RemoveBlackBorder(""+listFile, "assert/out-"+listFile.getName());
+            System.out.println("" + listFile + ":" + new BlankPageDetectDLL().BlankPageDetect("" + listFile));
+        }
+        System.out.println(System.currentTimeMillis() - now);
 
-        System.out.println("---------------------------");
-        IdentityCard.IdentityCardTrans("assert/2.jpg", "assert/out-2.jpg");
-        System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/5.jpg"));
-        RemoveBlackBorderDll.RemoveBlackBorder("assert/4.jpg", "assert/out-4.jpg");
-        JniDemo.ImageRecify("assert/4.jpg", "assert/out-4-1.jpg");  //调整角度
-        JniDemo.RemoveUnline("assert/4.jpg", "assert/out-4-2.jpg", 0, 0, 2366, 2638);
+//        System.out.println("---------------------------");
+//        IdentityCard.IdentityCardTrans("assert/2.jpg", "assert/out-2.jpg");
+//        System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/5.jpg"));
+//        RemoveBlackBorderDll.RemoveBlackBorder("assert/4.jpg", "assert/out-4.jpg");
+//        JniDemo.ImageRecify("assert/4.jpg", "assert/out-4-1.jpg");  //调整角度
+//        JniDemo.RemoveUnline("assert/4.jpg", "assert/out-4-2.jpg", 0, 0, 2366, 2638);
     }
 
     public static void addDir(String s) throws IOException {

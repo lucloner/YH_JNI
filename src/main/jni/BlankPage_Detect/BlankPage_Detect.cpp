@@ -140,7 +140,7 @@ int CalcDegree(const Mat &srcImage, double &degree)
 {
 	Mat midImage,dstImage;
 	Mat tmpImage;
-    const int poolSize=30000;
+    const int poolSize=50000;
 	vector<Vec2f> lines(poolSize);
 
 	double low_thresh = 0.0;
@@ -193,8 +193,8 @@ int CalcDegree(const Mat &srcImage, double &degree)
       Canny(srcImage, midImage, 10, 60, 3);
     }
 
-    imshow("Black white image", midImage);
-    waitKey(0);
+    //imshow("Black white image", midImage);
+    //waitKey(0);
 
     //通过霍夫变换检测直线
     lines.clear();
@@ -217,6 +217,9 @@ int CalcDegree(const Mat &srcImage, double &degree)
             break;
         }
         else if(lastLineCnt==lineCnt){
+            if(lineCnt==0){
+                lineCnt=1;
+            }
             return lineCnt;
         }
         lastLineCnt=lineCnt;
@@ -283,6 +286,9 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
         cout << "[file error]:" << e.msg << endl;
         return -1;
     }
+
+    cvtColor(sourceImage,src, COLOR_BGR2GRAY);
+    threshold(src, sourceImage, 127, 255, THRESH_BINARY);
 
     Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
     src = sourceImage(rect);
