@@ -327,8 +327,11 @@ task copyNativeDeps(type: Copy) {
     into toDir
 }
 task clearNativeDeps(type: Delete) {
-    def toDel = file('jnilibs').listFiles()
-    delete toDel
+    def jnilibsDir=file('jnilibs')
+    if(jnilibsDir.isDirectory()){
+        def toDel = jnilibsDir.listFiles()
+        delete toDel
+    }
 }
 
 sourceSets {

@@ -140,23 +140,14 @@ int CalcDegree(const Mat &srcImage, double &degree)
 {
 	Mat midImage,dstImage;
 	Mat tmpImage;
-
-	vector<Vec2f> lines(2000000);
+    const int poolSize=30000;
+	vector<Vec2f> lines(poolSize);
 
 	double low_thresh = 0.0;
 	double high_thresh = 0.0;
 
-
-	tmpImage = srcImage;// cvarrToMat(filtimg);
-
-
-	midImage = tmpImage;
-	//Mat km = cvMat(3, 3, CV_32FC1, high); //构造单通道浮点矩阵，将图像IplImage结构转换为图像数组
-
-	//cvFilter2D(filtimg, filtdst, &km, cvPoint(-1, -1));  //设参考点为核的中心
-
 	try{
-		AdaptiveFindThreshold(&midImage, &low_thresh, &high_thresh);
+		AdaptiveFindThreshold(&srcImage, &low_thresh, &high_thresh);
 	}catch (Exception e) {
         cout << "[CalcDegree]:" << e.msg << endl;
     }
@@ -165,10 +156,7 @@ int CalcDegree(const Mat &srcImage, double &degree)
     {
       Canny(srcImage, midImage, low_thresh, high_thresh * 200, 3);
     }
-
-    //imshow("边缘提取1", midImage);
-
-    if (high_thresh < 4)
+    else if (high_thresh < 4)
     {
       Canny(srcImage, midImage, low_thresh, high_thresh * 100, 3);
     }
@@ -205,116 +193,41 @@ int CalcDegree(const Mat &srcImage, double &degree)
       Canny(srcImage, midImage, 10, 60, 3);
     }
 
+    imshow("Black white image", midImage);
+    waitKey(0);
+
     //通过霍夫变换检测直线
     lines.clear();
-    HoughLines(midImage, lines, 1, CV_PI / 180, 1900, 0, 0);//第5个参数就是阈值，阈值越大，检测精度越高
-    //													  //由于图像不同，阈值不好设定，因为阈值设定过高导致无法检测直线，阈值过低直线太多，速度很慢
+    //通过逼近法求合适的值
 
-    ////所以根据阈值由大到小设置了三个阈值，如果经过大量试验后，可以固定一个适合的阈值。
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 1600, 0, 0);
+    int cur=1900,lineCnt=0,lastLineCnt=-1,touch=0;
+    while(lineCnt<poolSize*2){
+        HoughLines(midImage, lines, 1, CV_PI / 180, cur, 0, 0);//第5个参数就是阈值，阈值越大，检测精度越高
+        //由于图像不同，阈值不好设定，因为阈值设定过高导致无法检测直线，阈值过低直线太多，速度很慢
+        lineCnt=lines.size();
+        if(lineCnt>poolSize){
+            cur*=sqrt(cur);
+            touch++;
+        }
+        else{
+            cur=sqrt(cur);
+        }
+        //cout << "lineCnt" << lineCnt << "," << lastLineCnt << endl;
+        if(touch>1){
+            break;
+        }
+        else if(lastLineCnt==lineCnt){
+            return lineCnt;
+        }
+        lastLineCnt=lineCnt;
     }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 1400, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 1200, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 900, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 800, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 750, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 700, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 650, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 600, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 550, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 500, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 450, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 400, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 350, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 300, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 250, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 200, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 175, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 160, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 150, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 140, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 125, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 110, 0, 0);
-    }
-    if (lines.size()<3)
-    {
-      HoughLines(midImage, lines, 1, CV_PI / 180, 100, 0, 0);
-    }
-
 
     float sum = 0;
     int linesizever = 0;
     int count = 0;
     //依次画出每条线段
 
-    for (size_t i = 0; i < lines.size(); i++)
+    for (size_t i = 0; i < lineCnt; i++)
     {
       count++;
 
@@ -324,13 +237,14 @@ int CalcDegree(const Mat &srcImage, double &degree)
 
       double a = cos(theta), b = sin(theta);
 
-      //cout << theta << endl;
+      //cout << "theta" << theta << endl;
 
       //只选角度最小的作为旋转角度
       if ((theta < 0.3925 &&theta >= 0.0) || (theta < 1.9625 &&theta>1.1775) || (theta <3.14 &&theta>2.7475))
       {
         sum += theta;
         linesizever++;
+        //cout << "linesizever" << linesizever << endl;
       }
 
       line(dstImage, pt1, pt2, Scalar(55, 100, 195), 1, 16); //Scalar函数用于调节线段颜色
@@ -368,36 +282,6 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
 	}catch (Exception e) {
         cout << "[file error]:" << e.msg << endl;
         return -1;
-    }
-
-    //pyrMeanShiftFiltering(sourceImage,src, 25, 10);
-    cvtColor(sourceImage,src, COLOR_BGR2GRAY);
-    threshold(src, src, 127, 255, THRESH_BINARY);
-    //imshow("Black white image", src);
-    //waitKey(0);
-
-    int black=0,white=0,other=0;
-    for(int i=0;i<src.rows;i++){
-        for(int j=0;j<src.cols/2;j++){
-            uchar t=src.at<uchar>(i,j);
-            int c=(int)t;
-            //cout << c << endl;
-            if(c==255){
-                white++;
-            }
-            else if(c==0){
-                black++;
-            }
-            else{
-                other++;
-            }
-        }
-    }
-    float ratio=(float)black/white;
-    //cout << ratio << "," << black << "," << white << "," << other << endl;
-
-    if(ratio< 1e-3 ){
-        return 1;
     }
 
     Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
