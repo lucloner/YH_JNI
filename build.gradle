@@ -53,38 +53,61 @@ compileTestKotlin {
 }
 
 println "Building on OS: " + System.properties['os.name']
+println "Building on CPU: " + org.gradle.internal.os.OperatingSystem.current().nativePrefix
 println "Using JDK: " + System.properties['java.home']
 
 def JNI_INCLUDE_DIR = this.properties['jni.include.dir']
 def JNI_LIB_DIR = this.properties['jni.lib.dir']
 def JNI_INCLUDE_DIR_HEADERS = JNI_INCLUDE_DIR + "\\win32"
 
+def filelist = []
+def copyNativeDepsDirlist = []
+
+def headerList=["src/main/jni/headers"]
+
+if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+    JNI_INCLUDE_DIR = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+    JNI_LIB_DIR = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
+    JNI_INCLUDE_DIR_HEADERS = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/linux"
+    headerList.add "jnilibs/headers"
+} else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+    filelist.add(file("src/main/jni/opencv-4.1.2/build/x64/vc15/bin/opencv_world412.dll").path)
+    headerList.add "src/main/jni/opencv-4.1.2/build/include"
+}
+
+def cHeaders = {
+    srcDir headerList
+    srcDir JNI_LIB_DIR
+    srcDir JNI_INCLUDE_DIR_HEADERS
+    include "**/*.h*"
+    println "headers:"+srcDirs
+}
+
 println "Using JNI include directory: " + JNI_INCLUDE_DIR
 println "Using JNI lib directory: " + JNI_LIB_DIR
 println "Using JNI lib headers: " + JNI_INCLUDE_DIR_HEADERS
 println "Project Dir: " + projectDir
 
-def template_binaries_all={
+def template_binaries_all = {
     checkedBy tasks.copyNativeDeps
     // Define a preprocessor macro for every binary
-    cppCompiler.define "NDEBUG"
+    cCompiler.define "NDEBUG"
 
     // Define toolchain-specific compiler and linker options
     if (toolChain in Gcc) {
-        cppCompiler.args "-O2", "-fno-access-control"
+        cCompiler.args "-O2", "-fno-access-control"
+        cCompiler.args "-v"
+        cppCompiler.args "-std=gnu++11"
         linker.args "-Xlinker", "-S"
+        linker.args "-v"
     }
     if (toolChain in VisualCpp) {
         cCompiler.args "/VERBOSE"
         cCompiler.args "/Wall"
-        cppCompiler.args "/VERBOSE"
-        cppCompiler.args "/Wall"
         linker.args "/VERBOSE"
         linker.args "/ALIGN 4096"
         linker.args "/DLL"
         linker.args "/LARGEADDRESSAWARE"
-//        cCompiler.args "/Zi"
-//        cCompiler.args "/EHa"
 //        cppCompiler.args "/Zi"
 //        cppCompiler.args "/EHa"
 //        cppCompiler.args "/O2"
@@ -101,14 +124,13 @@ def template_binaries_all={
         cCompiler.args "-E"
         cCompiler.args "-fsanitize=address"
         cCompiler.args "-v"
+        cCompiler.args "-w"
         linker.args "-v"
     }
 
     if (toolChain in Gcc) {
         cCompiler.args "-fPIC"
         cCompiler.args "-v"
-        cppCompiler.args "-fPIC"
-        cppCompiler.args "-v"
         linker.args "-v"
     }
 
@@ -129,42 +151,47 @@ def template_binaries_all={
         cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
         cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/freebsd"
     }
+    println "****************[" + it + "]****************"
+    println "C Compiler args:"
+    println cCompiler.args
+    cppCompiler.args.addAll cCompiler.args
+    if (it.toString().contains("shared")) {
+        //copyNativeDepsDirlist.add(it.sharedLibraryFile.parent)
+        println "****************[" + it.sharedLibraryFile.parent + "]****************"
+    }
+    println "C++ Compiler args:"
+    println cppCompiler.args
+    println "****************[" + toolChain + "]****************"
 }
-def template_buildTypes={
+
+def template_buildTypes = {
     debug
     release
 }
-def filelist=new java.util.HashSet<String>()
-def dirlist=new java.util.HashSet<String>()
+
 //def opencv_Headers=this.fileTree(dir:'src/main/jni/opencv-4.1.2',include:'**/*.h*')
 //for(opencv_h in opencv_Headers){
 //    println 'found header: '+opencv_h
 //}
-def cHeaders = {
-    srcDir "src/main/jni/headers"
-    srcDir "src/main/jni/opencv-4.1.2/build/include"
-    srcDir JNI_LIB_DIR
-    srcDir JNI_INCLUDE_DIR_HEADERS
-    include "**/*.h*"
-}
+
 
 model {
     components {
         hello(NativeLibrarySpec) {
-            def cName=it.getBaseName()
-            def cDllName=cName+'.dll'
-            def cDllPath="$buildDir/libs/$cName/shared/release"
-            def cTask="${cName}ReleaseSharedLibrary"
+            def cName = it.getBaseName()
+            def cDllName = cName + '.dll'
+            def cDllPath = "$buildDir/libs/$cName/shared/release"
+            def cTask = "${cName}ReleaseSharedLibrary"
             //批量导入使用
             println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
             filelist.add(cDllName)
-            dirlist.add(cDllPath)
+            copyNativeDepsDirlist.add(cDllPath)
             $.tasks.copyNativeDeps.dependsOn cTask
 
             sources {
-                c.source{
+                c.source {
                     srcDirs 'src/main/jni/c'
-                    include cName+'.c'
+                    include cName + '.c'
                 }
                 c.exportedHeaders cHeaders
             }
@@ -176,20 +203,20 @@ model {
 
         //模板
         hello01(NativeLibrarySpec) {
-            def cName=it.getBaseName()
-            def cDllName=cName+'.dll'
-            def cDllPath="$buildDir/libs/$cName/shared/release"
-            def cTask="${cName}ReleaseSharedLibrary"
+            def cName = it.getBaseName()
+            def cDllName = cName + '.dll'
+            def cDllPath = "$buildDir/libs/$cName/shared/release"
+            def cTask = "${cName}ReleaseSharedLibrary"
             //批量导入使用
             println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
             filelist.add(cDllName)
-            dirlist.add(cDllPath)
+            copyNativeDepsDirlist.add(cDllPath)
             $.tasks.copyNativeDeps.dependsOn cTask
 
             sources {
-                c.source{
+                c.source {
                     srcDirs 'src/main/jni/c'
-                    include cName+'.c'
+                    include cName + '.c'
                 }
                 c.exportedHeaders cHeaders
             }
@@ -199,20 +226,20 @@ model {
         }
 
         IdentityCard(NativeLibrarySpec) {
-            def cName=it.getBaseName()
-            def cDllName=cName+'.dll'
-            def cDllPath="$buildDir/libs/$cName/shared/release"
-            def cTask="${cName}ReleaseSharedLibrary"
+            def cName = it.getBaseName()
+            def cDllName = cName + '.dll'
+            def cDllPath = "$buildDir/libs/$cName/shared/release"
+            def cTask = "${cName}ReleaseSharedLibrary"
             //批量导入使用
             println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
             filelist.add(cDllName)
-            dirlist.add(cDllPath)
+            copyNativeDepsDirlist.add(cDllPath)
             $.tasks.copyNativeDeps.dependsOn cTask
 
             sources {
-                cpp.source{
-                    srcDirs 'src/main/jni/'+cName
-                    include cName+'.cpp'
+                cpp.source {
+                    srcDirs 'src/main/jni/' + cName
+                    include cName + '.cpp'
                 }
                 cpp.exportedHeaders cHeaders
             }
@@ -223,20 +250,20 @@ model {
         }
 
         BlankPage_Detect(NativeLibrarySpec) {
-            def cName=it.getBaseName()
-            def cDllName=cName+'.dll'
-            def cDllPath="$buildDir/libs/$cName/shared/release"
-            def cTask="${cName}ReleaseSharedLibrary"
+            def cName = it.getBaseName()
+            def cDllName = cName + '.dll'
+            def cDllPath = "$buildDir/libs/$cName/shared/release"
+            def cTask = "${cName}ReleaseSharedLibrary"
             //批量导入使用
             println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
             filelist.add(cDllName)
-            dirlist.add(cDllPath)
+            copyNativeDepsDirlist.add(cDllPath)
             $.tasks.copyNativeDeps.dependsOn cTask
 
             sources {
-                cpp.source{
-                    srcDirs 'src/main/jni/'+cName
-                    include cName+'.cpp'
+                cpp.source {
+                    srcDirs 'src/main/jni/' + cName
+                    include cName + '.cpp'
                 }
                 cpp.exportedHeaders cHeaders
             }
@@ -247,20 +274,20 @@ model {
         }
 
         RemoveBlackBorder(NativeLibrarySpec) {
-            def cName=it.getBaseName()
-            def cDllName=cName+'.dll'
-            def cDllPath="$buildDir/libs/$cName/shared/release"
-            def cTask="${cName}ReleaseSharedLibrary"
+            def cName = it.getBaseName()
+            def cDllName = cName + '.dll'
+            def cDllPath = "$buildDir/libs/$cName/shared/release"
+            def cTask = "${cName}ReleaseSharedLibrary"
             //批量导入使用
             println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
             filelist.add(cDllName)
-            dirlist.add(cDllPath)
+            copyNativeDepsDirlist.add(cDllPath)
             $.tasks.copyNativeDeps.dependsOn cTask
 
             sources {
-                cpp.source{
-                    srcDirs 'src/main/jni/'+cName
-                    include cName+'.cpp'
+                cpp.source {
+                    srcDirs 'src/main/jni/' + cName
+                    include cName + '.cpp'
                 }
                 cpp.exportedHeaders cHeaders
             }
@@ -271,20 +298,20 @@ model {
         }
 
         RectifyUnlineDll(NativeLibrarySpec) {
-            def cName=it.getBaseName()
-            def cDllName=cName+'.dll'
-            def cDllPath="$buildDir/libs/$cName/shared/release"
-            def cTask="${cName}ReleaseSharedLibrary"
+            def cName = it.getBaseName()
+            def cDllName = cName + '.dll'
+            def cDllPath = "$buildDir/libs/$cName/shared/release"
+            def cTask = "${cName}ReleaseSharedLibrary"
             //批量导入使用
             println "Compile: ${cName}.c, to: ${cDllPath},${cDllName}"
             filelist.add(cDllName)
-            dirlist.add(cDllPath)
+            copyNativeDepsDirlist.add(cDllPath)
             $.tasks.copyNativeDeps.dependsOn cTask
 
             sources {
-                cpp.source{
-                    srcDirs 'src/main/jni/'+cName
-                    include cName+'.cpp'
+                cpp.source {
+                    srcDirs 'src/main/jni/' + cName
+                    include cName + '.cpp'
                 }
                 cpp.exportedHeaders cHeaders
             }
@@ -310,25 +337,41 @@ model {
             // installDir "C:/Apps/Microsoft Visual Studio 10.0"
         }
         gcc(Gcc) {
-             //Uncomment to use a GCC install that is not in the PATH
-             path "D:/tool-chains/mingw-w64/mingw64/bin"
+            //Uncomment to use a GCC install that is not in the PATH
+            //path "D:/tool-chains/mingw-w64/mingw64/bin"
         }
-        clang(Clang){
-            path "D:/tool-chains/LLVM/bin"
+        clang(Clang) {
+            //path "D:/tool-chains/LLVM/bin"
         }
     }
 }
 
 task copyNativeDeps(type: Copy) {
     def toDir = rootProject.file('jnilibs')
-    from dirlist
+    from copyNativeDepsDirlist
     into toDir
-    from file("src/main/jni/opencv-4.1.2/build/x64/vc15/bin/opencv_world412.dll")
-    into toDir
+    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
+        from file("src/main/jni/opencv-4.1.2/build/x64/vc15/bin/opencv_world412.dll")
+        into toDir
+    }
+    println "copyNativeDeps:" + copyNativeDepsDirlist
 }
+
+copyNativeDeps.doFirst {
+    for (t in tasks) {
+        if(t instanceof LinkSharedLibrary){
+            copyNativeDepsDirlist.add(t.linkedFile)
+        }
+    }
+}
+
+copyNativeDeps.doLast {
+    println "copyNativeDeps:" + copyNativeDepsDirlist
+}
+
 task clearNativeDeps(type: Delete) {
-    def jnilibsDir=file('jnilibs')
-    if(jnilibsDir.isDirectory()){
+    def jnilibsDir = file('jnilibs')
+    if (jnilibsDir.isDirectory()) {
         def toDel = jnilibsDir.listFiles()
         delete toDel
     }

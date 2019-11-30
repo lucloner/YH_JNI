@@ -4,7 +4,12 @@
 #include "opencv2/imgproc/imgproc_c.h"
 #include <iostream>
 #include <fcntl.h>
-#include <io.h>
+#if defined(__linux__) || defined(__linux)
+#  include <sys/io.h>
+#else
+#  include <io.h>
+#endif
+
 #include <math.h>
 #include <stdio.h>
 #include <signal.h>
@@ -16,32 +21,6 @@
 
 using namespace cv;
 using namespace std;
-
-bool SetResolution(const char* path, int iResolution)
-{
-	FILE * file = fopen(path, "rb+");// - 打开图片文件
-	if (!file)return false;
-	int len = _filelength(_fileno(file));// - 获取文件大小
-	char* buf = new char[len];
-	fread(buf, sizeof(char), len, file);// - 将图片数据读入缓存
-	char * pResolution = (char*)&iResolution;// - iResolution为要设置的分辨率的数值，如72dpi
-											 // - 设置JPG图片的分辨率
-	buf[0x0D] = 1;// - 设置使用图片密度单位
-				  // - 水平密度，水平分辨率
-	buf[0x0E] = pResolution[1];
-	buf[0x0F] = pResolution[0];
-	// - 垂直密度，垂直分辨率
-	buf[0x10] = pResolution[1];
-	buf[0x11] = pResolution[0];
-
-	// - 将文件指针移动回到文件开头
-	fseek(file, 0, SEEK_SET);
-	// - 将数据写入文件，覆盖原始的数据，让修改生效
-	fwrite(buf, sizeof(char), len, file);
-	fclose(file);
-	return true;
-}
-
 
 // 仿照matlab，自适应求高低两个门限
 void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)

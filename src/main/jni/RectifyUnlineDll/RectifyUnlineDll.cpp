@@ -3,7 +3,11 @@
 #include "opencv2/imgproc/imgproc_c.h"
 #include <iostream>
 #include <fcntl.h>
-#include <io.h>
+#if defined(__linux__) || defined(__linux)
+#  include <sys/io.h>
+#else
+#  include <io.h>
+#endif
 #include <math.h>
 
 int number = 0;
@@ -134,7 +138,8 @@ void CalcDegree(const Mat &srcImage, double &degree)
 	float high[9] = { -1, -1, -1, -1, 9, -1, -1, -1, -1 };//高通滤波核
     Mat km;
     km = Mat(3, 3, CV_32FC1, high); //构造单通道浮点矩阵，将图像IplImage结构转换为图像数组
-	IplImage* filtimg = &IplImage(srcImage);
+    IplImage src2img=IplImage(srcImage);
+	IplImage* filtimg = &src2img;
 
 	filtdst = cvCreateImage(srcImage.size(), IPL_DEPTH_8U, 3);
 
@@ -226,32 +231,6 @@ void CalcDegree(const Mat &srcImage, double &degree)
 
 }
 
-
-bool SetResolution(const char* path, int iResolution)
-{
-	FILE * file = fopen(path, "rb+");// - 打开图片文件 
-	if (!file)return false;
-	int len = _filelength(_fileno(file));// - 获取文件大小 
-	char* buf = new char[len];
-	fread(buf, sizeof(char), len, file);// - 将图片数据读入缓存 
-	char * pResolution = (char*)&iResolution;// - iResolution为要设置的分辨率的数值，如72dpi 
-											 // - 设置JPG图片的分辨率 
-	buf[0x0D] = 1;// - 设置使用图片密度单位 
-				  // - 水平密度，水平分辨率 
-	buf[0x0E] = pResolution[1];
-	buf[0x0F] = pResolution[0];
-	// - 垂直密度，垂直分辨率 
-	buf[0x10] = pResolution[1];
-	buf[0x11] = pResolution[0];
-
-	// - 将文件指针移动回到文件开头 
-	fseek(file, 0, SEEK_SET);
-	// - 将数据写入文件，覆盖原始的数据，让修改生效 
-	fwrite(buf, sizeof(char), len, file);
-	fclose(file);
-	return true;
-}
-
 JNIEXPORT jdouble JNICALL Java_com_JniDemo_ImageRecify
 (JNIEnv *env, jclass cls, jstring SrcPath, jstring DstPath)
 {
@@ -299,7 +278,6 @@ JNIEXPORT jdouble JNICALL Java_com_JniDemo_ImageRecify
 
 	const char*  ch;
 	ch = dstpath.data();
-	SetResolution(ch, 300);
 
 	return degree;
 }
@@ -483,7 +461,6 @@ JNIEXPORT void JNICALL Java_com_JniDemo_RemoveUnline(JNIEnv *env, jclass cls, js
 
 	const char*  ch;
 	ch = dstpath.data();
-	SetResolution(ch, 300);
 }
 
 JNIEXPORT void JNICALL Java_com_JniDemo_set
