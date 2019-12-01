@@ -22,6 +22,10 @@
 using namespace cv;
 using namespace std;
 
+extern int image_height,image_width;
+extern double theta_range;
+static int image_height,image_width;
+static double theta_range=CV_PI*0.001;
 // 仿照matlab，自适应求高低两个门限
 void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)
 {
@@ -35,13 +39,13 @@ void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)
     double PercentOfPixelsNotEdges = 0.7;
     float maxv = 0;
 
-
-
-//    try{
+    try{
         size = dx->size();
-//	}catch (Exception e) {
-//        cout << "[_AdaptiveFindThreshold]:" << e.msg << endl;
-//    }
+        image_height=size.height;
+        image_width=size.width;
+	}catch (Exception e) {
+        cout << "[_AdaptiveFindThreshold]:" << e.msg << endl;
+    }
 
     imge = cvCreateImage(size, IPL_DEPTH_32F, 1);
   	// 计算边缘的强度, 并存于图像中
@@ -100,11 +104,11 @@ void AdaptiveFindThreshold(const Mat* image, double *low, double *high, int aper
 
 	Mat _dx = dx, _dy = dy;
 
-//	try{
+	try{
 		_AdaptiveFindThreshold(&_dx, &_dy, low, high);
-//	}catch (Exception e) {
-//        cout << "[AdaptiveFindThreshold]:" << e.msg << endl;
-//    }
+	}catch (Exception e) {
+        cout << "[AdaptiveFindThreshold]:" << e.msg << endl;
+    }
 }
 
 //度数转换
@@ -114,22 +118,71 @@ double DegreeTrans(double theta)
 	return res;
 }
 
+int drawDetectedLines(Mat& result,vector<Vec2f> lines){
+	std::vector<cv::Vec2f>::const_iterator it = lines.begin();
+    int sum_horizon=0,sum_vertical=0;
+    const int direction=image_height-image_width;
+	while (it != lines.end())
+	{
+		// 以下两个参数用来检测直线属于垂直线还是水平线
+		float rho = (*it)[0];
+		float theta = (*it)[1];
+		if (theta < CV_PI / 4. || theta > 3. * CV_PI / 4.)
+		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
+            cv::Point pt1(rho / cos(theta), 0);
+            cv::Point pt2((rho - result.rows*sin(theta)) / cos(theta), result.rows);
+            cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 5); //
+//            cout << "theta vertical " << lines_theta << endl;
+            if(theta<theta_range||theta>2.*CV_PI-theta_range||(theta<CV_PI+theta_range&&theta>CV_PI-theta_range)){
+                sum_vertical++;
+            }
+		}
+		else // 若检测为水平线,直线交于图片的左右两边,先找交点
+		{
+            cv::Point pt1(0, rho / sin(theta));
+            cv::Point pt2(result.cols, (rho - result.cols*cos(theta)) / sin(theta));
+            cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 5);
+//            cout << "theta horizon " << theta << endl;
+            if((theta<CV_PI/2.+theta_range&&theta>CV_PI/2.-theta_range)||(theta<CV_PI*3./4.+theta_range&&theta>CV_PI*3./4.-theta_range)){
+                sum_horizon++;
+            }
+		}
+		const int sum=max(sum_horizon,sum_vertical);
+		if(direction>0){
+		    if(sum_horizon>3){
+		        return sum;
+		    }
+//		    cout << "sum_horizon " << sum_horizon << endl;
+		}
+		else{
+		    if(sum_vertical>3){
+		        return sum;
+		    }
+//		    cout << "sum_vertical " << sum_vertical << endl;
+		}
+		++it;
+	}
+	return INT_MIN;
+}
+
 //通过霍夫变换计算角度
 int CalcDegree(const Mat &srcImage, double &degree)
 {
 	Mat midImage,dstImage;
 	Mat tmpImage;
-    const int poolSize=50000;
+	//此处控制阈值
+    const int poolSize=100;
+
 	vector<Vec2f> lines(poolSize);
 
 	double low_thresh = 0.0;
 	double high_thresh = 0.0;
 
-//	try{
+	try{
 		AdaptiveFindThreshold(&srcImage, &low_thresh, &high_thresh);
-//	}catch (Exception e) {
-//        cout << "[CalcDegree]:" << e.msg << endl;
-//    }
+	}catch (Exception e) {
+        cout << "[CalcDegree]:" << e.msg << endl;
+    }
 
 	if (high_thresh < 2)
     {
@@ -175,76 +228,66 @@ int CalcDegree(const Mat &srcImage, double &degree)
     //imshow("Black white image", midImage);
     //waitKey(0);
 
+    const Mat hough_img=midImage.clone();
     //通过霍夫变换检测直线
     lines.clear();
     //通过逼近法求合适的值
-
-    int cur=1900,lineCnt=0,lastLineCnt=-1,touch=0;
-    while(lineCnt<poolSize*2){
-        HoughLines(midImage, lines, 1, CV_PI / 180, cur, 0, 0);//第5个参数就是阈值，阈值越大，检测精度越高
+    //获得图片大小
+    //CvSize size=midImage.size();
+    const int width=image_width;
+    const int height=image_height;
+    //cout << "w " << width << " h " << height << endl;
+    int cur=max(width/4,height/4),lineCnt=0,lastLineCnt=-1,touch=0,touchSame=0,touchZero=0;
+    while(lineCnt<poolSize*2||(touch+touchSame+touchZero<5)){
+        HoughLines(hough_img, lines, 1, CV_PI / 180, cur, 0, 0);//第5个参数就是阈值，阈值越小，检测精度越高
         //由于图像不同，阈值不好设定，因为阈值设定过高导致无法检测直线，阈值过低直线太多，速度很慢
         lineCnt=lines.size();
+        //cout << "lineCnt " << lineCnt << ", cur " << cur << endl;
         if(lineCnt>poolSize){
-            cur*=sqrt(cur);
+            cur=cur*sqrt(cur)+1;
             touch++;
         }
-        else{
-            cur=sqrt(cur);
+        else if(lineCnt<=1&&cur<=1){
+            return max(1,lastLineCnt);
         }
-        //cout << "lineCnt" << lineCnt << "," << lastLineCnt << endl;
+        else{
+            if(lastLineCnt==lineCnt&&lineCnt!=0){
+                touch--;
+                touchZero=0;
+                touchSame++;
+            }
+            else if(lineCnt==0){
+                touch--;
+                touchSame--;
+                touchZero++;
+            }
+            cur=sqrt(cur)+touch;
+        }
         if(touch>1){
+             break;
+        }
+        else if(touchSame>2){
             break;
         }
-        else if(lastLineCnt==lineCnt){
-            if(lineCnt==0){
-                lineCnt=1;
-            }
-            return lineCnt;
+        else if(touchZero>2){
+            return INT_MAX;
         }
+
         lastLineCnt=lineCnt;
     }
+    //下面找到文字行所代表的横线
+    //显示测试图片
+    Mat hough_img_line=srcImage.clone();
+    const int sum=drawDetectedLines(hough_img_line,lines);
+//    imshow("Lines", hough_img_line);
+//    waitKey(0);
 
-    float sum = 0;
-    int linesizever = 0;
-    int count = 0;
-    //依次画出每条线段
-
-    for (size_t i = 0; i < lineCnt; i++)
-    {
-      count++;
-
-      float rho = lines[i][0];
-      float theta = lines[i][1];
-      Point pt1, pt2;
-
-      double a = cos(theta), b = sin(theta);
-
-      //cout << "theta" << theta << endl;
-
-      //只选角度最小的作为旋转角度
-      if ((theta < 0.3925 &&theta >= 0.0) || (theta < 1.9625 &&theta>1.1775) || (theta <3.14 &&theta>2.7475))
-      {
-        sum += theta;
-        linesizever++;
-        //cout << "linesizever" << linesizever << endl;
-      }
-
-      line(dstImage, pt1, pt2, Scalar(55, 100, 195), 1, 16); //Scalar函数用于调节线段颜色
+    if(sum>3){
+        return 0;
     }
 
-    if (lines.size() > 3)
-    {
-      linesizever++;
-    }
-
-    if (linesizever > 0)
-    {
-      return 0;
-    }
-    else
-    {
-      return 1;
-    }
+    lineCnt=lineCnt/100*100;
+    return max(sum+lineCnt,1);
 }
 
 JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
@@ -257,14 +300,14 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     double degree=0.0;
     Mat sourceImage;
     Mat src;
-//    try{
+    try{
         c_str = env->GetStringUTFChars(SrcPath, &isCopy);
         srcpath = c_str;
         sourceImage = imread(srcpath);
-//	}catch (Exception e) {
-//        cout << "[file error]:" << e.msg << endl;
-//        return -1;
-//    }
+	}catch (Exception e) {
+        cout << "[file error]:" << e.msg << endl;
+        return -1;
+    }
 
     cvtColor(sourceImage,src, COLOR_BGR2GRAY);
     threshold(src, sourceImage, 127, 255, THRESH_BINARY);
@@ -272,11 +315,11 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
     src = sourceImage(rect);
 
-//    try{
+    try{
         result = CalcDegree(src, degree);
-//	}catch (Exception e) {
-//        cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
-//    }
+	}catch (Exception e) {
+        cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
+    }
 
     return  result;
 }

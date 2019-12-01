@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="Encoding" defaultCharsetForPropertiesFiles="UTF-8">
-    <file url="file://$PROJECT_DIR$/build/tmp/compileBlankPage_DetectDebugSharedLibraryBlankPage_DetectCpp/output.txt" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/build/tmp/compileBlankPage_DetectDebugStaticLibraryBlankPage_DetectCpp/output.txt" charset="GBK" />
     <file url="file://$PROJECT_DIR$/build/tmp/compileBlankPage_DetectReleaseSharedLibraryBlankPage_DetectCpp/output.txt" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/build/tmp/compileRectifyUnlineDllDebugSharedLibraryRectifyUnlineDllCpp/output.txt" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/build/tmp/compileRectifyUnlineDllReleaseSharedLibraryRectifyUnlineDllCpp/output.txt" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/build/tmp/compileRemoveBlackBorderDebugSharedLibraryRemoveBlackBorderCpp/output.txt" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/build/tmp/linkBlankPage_DetectDebugSharedLibrary/output.txt" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/build/tmp/linkBlankPage_DetectReleaseSharedLibrary/output.txt" charset="GBK" />
-    <file url="file://$PROJECT_DIR$/hs_err_pid5844.log" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/main/jni/BlankPage_Detect/BlankPage_Detect.cpp" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/main/jni/IdentityCard/IdentityCard.cpp" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/main/jni/RectifyUnlineDll/RectifyUnlineDll.cpp" charset="GBK" />
