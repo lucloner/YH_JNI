@@ -18,7 +18,35 @@ public class YH_JNI_main {
             if (System.getProperty("os.name").toLowerCase().startsWith("win")) {
                 System.loadLibrary("opencv_world412");
             } else if (System.getProperty("os.name").toLowerCase().startsWith("linux")) {
-
+/*
+                final String[] libs = new String[]{
+                        "opencv_calib3d",
+                        "opencv_contrib",
+                        "opencv_core",
+                        "opencv_dnn",
+                        "opencv_features2d",
+                        "opencv_flann",
+                        "opencv_gapi",
+                        "opencv_gpu",
+                        "opencv_highgui",
+                        "opencv_imgcodecs",
+                        "opencv_imgproc",
+                        "opencv_legacy",
+                        "opencv_ml",
+                        "opencv_objdetect",
+                        "opencv_ocl",
+                        "opencv_photo",
+                        "opencv_stitching",
+                        "opencv_superres",
+                        "opencv_ts",
+                        "opencv_videoio",
+                        "opencv_video",
+                        "opencv_videostab"
+                };
+                for (final String lib : libs) {
+                    System.loadLibrary(lib);
+                }
+*/
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -36,7 +64,7 @@ public class YH_JNI_main {
 //        System.out.println(System.currentTimeMillis() - now);
 
 //        System.out.println("---------------------------");
-//       IdentityCard.IdentityCardTrans("assert/2.jpg", "assert/out-2.jpg");
+//        IdentityCard.IdentityCardTrans("assert/2.jpg", "assert/out-2.jpg");
         System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/5.jpg"));
 //        RemoveBlackBorderDll.RemoveBlackBorder("assert/4.jpg", "assert/out-4.jpg");
 //        JniDemo.ImageRecify("assert/4.jpg", "assert/out-4-1.jpg");  //调整角度

@@ -67,7 +67,7 @@ JNIEXPORT void JNICALL Java_com_RemoveBlackBorderDll_RemoveBlackBorder
 				}
 				else if (sourceImage.at<Vec3b>(row, col)(0)>120 || sourceImage.at<Vec3b>(row, col)(1)>120 || sourceImage.at<Vec3b>(row, col)(2)>120)
 				{
-					Scalar color1 = sourceImage.at<Vec3b>(row, col);
+					sourceImage.at<Vec3b>(row, col);
 
 					if (col > xend)
 					{
@@ -183,7 +183,7 @@ JNIEXPORT void JNICALL Java_com_RemoveBlackBorderDll_RemoveBlackBorder
 				}
 				else if (sourceImage.at<Vec3b>(row, col)(0)>120 || sourceImage.at<Vec3b>(row, col)(1)>120 || sourceImage.at<Vec3b>(row, col)(2)>120)
 				{
-					Scalar color1 = sourceImage.at<Vec3b>(row, col);
+					sourceImage.at<Vec3b>(row, col);
 
 					if (col < xstart)
 					{
@@ -299,7 +299,7 @@ JNIEXPORT void JNICALL Java_com_RemoveBlackBorderDll_RemoveBlackBorder
 				}
 				else if (sourceImage.at<Vec3b>(row, col)(0)>120 || sourceImage.at<Vec3b>(row, col)(1)>120 || sourceImage.at<Vec3b>(row, col)(2)>120)
 				{
-					Scalar color1 = sourceImage.at<Vec3b>(row, col);
+					sourceImage.at<Vec3b>(row, col);
 
 					if (row > yend)
 					{
@@ -413,7 +413,7 @@ JNIEXPORT void JNICALL Java_com_RemoveBlackBorderDll_RemoveBlackBorder
 				}
 				else if (sourceImage.at<Vec3b>(row, col)(0)>120 || sourceImage.at<Vec3b>(row, col)(1)>120 || sourceImage.at<Vec3b>(row, col)(2)>120)
 				{
-					Scalar color1 = sourceImage.at<Vec3b>(row, col);
+					sourceImage.at<Vec3b>(row, col);
 
 					if (row <ystart)
 					{

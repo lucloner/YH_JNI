@@ -13,12 +13,11 @@
 
 #include "com_RemoveBlackBorderDll.h"
 #include <fcntl.h>
+#include <opencv2/photo.hpp>
 #if defined(__linux__) || defined(__linux)
 #  include <sys/io.h>
-#  include <opencv2/photo/photo.hpp>
 #else
 #  include <io.h>
-#  include <opencv2/photo.hpp>
 #endif
 
 using namespace cv;

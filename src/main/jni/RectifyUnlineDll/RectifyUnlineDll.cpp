@@ -257,11 +257,11 @@ JNIEXPORT jdouble JNICALL Java_com_JniDemo_ImageRecify
 	}
 	//ÇãÐ±½Ç¶È½ÃÕý
 
-    try{
+//    try{
 	    CalcDegree(src, degree);
-	}catch (Exception e) {
-        cout << "[Java_com_JniDemo_ImageRecify]:" << e.msg << endl;
-    }
+//	}catch (Exception e) {
+//        cout << "[Java_com_JniDemo_ImageRecify]:" << e.msg << endl;
+//    }
 
 	if (degree > 0.5 || degree <-0.5)
 	{

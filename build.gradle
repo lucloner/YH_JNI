@@ -16,10 +16,11 @@ plugins {
     id 'org.jetbrains.kotlin.jvm' version '1.3.60'
     id 'cpp'
     id 'cunit-test-suite'
+    id 'c'
 }
 
 group 'net.vicp.biggee.jni'
-version '1.0-SNAPSHOT'
+version "1.0-SNAPSHOT-${new Date().format("YYYYMMDD-hhmmss")}"
 
 sourceCompatibility = 1.8
 
@@ -63,16 +64,18 @@ def JNI_INCLUDE_DIR_HEADERS = JNI_INCLUDE_DIR + "\\win32"
 def filelist = []
 def copyNativeDepsDirlist = []
 
-def headerList=["src/main/jni/headers"]
+def headerList = ["src/main/jni/headers"]
 
 if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
     JNI_INCLUDE_DIR = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
     JNI_LIB_DIR = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
     JNI_INCLUDE_DIR_HEADERS = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/linux"
-    headerList.add "jnilibs/headers"
+    headerList.add "/usr/local/include"
+    headerList.add "/usr/local/include/opencv4"
 } else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
     filelist.add(file("src/main/jni/opencv-4.1.2/build/x64/vc15/bin/opencv_world412.dll").path)
     headerList.add "src/main/jni/opencv-4.1.2/build/include"
+    copyNativeDepsDirlist.add file("src/main/jni/opencv-4.1.2/build/x64/vc15/bin/opencv_world412.dll")
 }
 
 def cHeaders = {
@@ -80,7 +83,7 @@ def cHeaders = {
     srcDir JNI_LIB_DIR
     srcDir JNI_INCLUDE_DIR_HEADERS
     include "**/*.h*"
-    println "headers:"+srcDirs
+    println "headers:" + srcDirs
 }
 
 println "Using JNI include directory: " + JNI_INCLUDE_DIR
@@ -96,8 +99,9 @@ def template_binaries_all = {
     // Define toolchain-specific compiler and linker options
     if (toolChain in Gcc) {
         cCompiler.args "-O2", "-fno-access-control"
+        cCompiler.args "-ggdb"
         cCompiler.args "-v"
-        cppCompiler.args "-std=gnu++11"
+        cppCompiler.args "-std=c++11"
         linker.args "-Xlinker", "-S"
         linker.args "-v"
     }
@@ -156,8 +160,7 @@ def template_binaries_all = {
     println cCompiler.args
     cppCompiler.args.addAll cCompiler.args
     if (it.toString().contains("shared")) {
-        //copyNativeDepsDirlist.add(it.sharedLibraryFile.parent)
-        println "****************[" + it.sharedLibraryFile.parent + "]****************"
+        println "****************[" + it.sharedLibraryFile + "]****************"
     }
     println "C++ Compiler args:"
     println cppCompiler.args
@@ -347,19 +350,13 @@ model {
 }
 
 task copyNativeDeps(type: Copy) {
-    def toDir = rootProject.file('jnilibs')
     from copyNativeDepsDirlist
-    into toDir
-    if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
-        from file("src/main/jni/opencv-4.1.2/build/x64/vc15/bin/opencv_world412.dll")
-        into toDir
-    }
-    println "copyNativeDeps:" + copyNativeDepsDirlist
+    into rootProject.file('jnilibs')
 }
 
 copyNativeDeps.doFirst {
     for (t in tasks) {
-        if(t instanceof LinkSharedLibrary){
+        if (t instanceof LinkSharedLibrary) {
             copyNativeDepsDirlist.add(t.linkedFile)
         }
     }
@@ -390,11 +387,29 @@ sourceSets {
     }
 }
 
+tasks.compileJava.dependsOn 'copyNativeDeps'
+tasks.clean.dependsOn 'clearNativeDeps'
+
 jar {
+    from {
+        //添加依懒到打包文件
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+        configurations.runtime.collect { zipTree(it) }
+        'jnilibs'
+    }
     manifest {
         attributes 'Main-Class': 'net.vicp.biggee.jni.YH_JNI_main'
     }
 }
 
-tasks.compileJava.dependsOn 'copyNativeDeps'
-tasks.clean.dependsOn 'clearNativeDeps'
+task copyJni(type: Copy,dependsOn: jar) {
+    from files('jnilibs')
+    into "$buildDir/output/jnilibs"
+}
+
+
+task copyJarAndJni(type: Copy,dependsOn: copyJni) {
+    from jar.archiveFile
+    into "$buildDir/output"
+}
+

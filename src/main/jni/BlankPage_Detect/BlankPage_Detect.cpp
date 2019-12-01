@@ -37,11 +37,11 @@ void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)
 
 
 
-    try{
+//    try{
         size = dx->size();
-	}catch (Exception e) {
-        cout << "[_AdaptiveFindThreshold]:" << e.msg << endl;
-    }
+//	}catch (Exception e) {
+//        cout << "[_AdaptiveFindThreshold]:" << e.msg << endl;
+//    }
 
     imge = cvCreateImage(size, IPL_DEPTH_32F, 1);
   	// 计算边缘的强度, 并存于图像中
@@ -100,11 +100,11 @@ void AdaptiveFindThreshold(const Mat* image, double *low, double *high, int aper
 
 	Mat _dx = dx, _dy = dy;
 
-	try{
+//	try{
 		_AdaptiveFindThreshold(&_dx, &_dy, low, high);
-	}catch (Exception e) {
-        cout << "[AdaptiveFindThreshold]:" << e.msg << endl;
-    }
+//	}catch (Exception e) {
+//        cout << "[AdaptiveFindThreshold]:" << e.msg << endl;
+//    }
 }
 
 //度数转换
@@ -125,11 +125,11 @@ int CalcDegree(const Mat &srcImage, double &degree)
 	double low_thresh = 0.0;
 	double high_thresh = 0.0;
 
-	try{
+//	try{
 		AdaptiveFindThreshold(&srcImage, &low_thresh, &high_thresh);
-	}catch (Exception e) {
-        cout << "[CalcDegree]:" << e.msg << endl;
-    }
+//	}catch (Exception e) {
+//        cout << "[CalcDegree]:" << e.msg << endl;
+//    }
 
 	if (high_thresh < 2)
     {
@@ -257,14 +257,14 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     double degree=0.0;
     Mat sourceImage;
     Mat src;
-    try{
+//    try{
         c_str = env->GetStringUTFChars(SrcPath, &isCopy);
         srcpath = c_str;
         sourceImage = imread(srcpath);
-	}catch (Exception e) {
-        cout << "[file error]:" << e.msg << endl;
-        return -1;
-    }
+//	}catch (Exception e) {
+//        cout << "[file error]:" << e.msg << endl;
+//        return -1;
+//    }
 
     cvtColor(sourceImage,src, COLOR_BGR2GRAY);
     threshold(src, sourceImage, 127, 255, THRESH_BINARY);
@@ -272,11 +272,11 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
     src = sourceImage(rect);
 
-    try{
+//    try{
         result = CalcDegree(src, degree);
-	}catch (Exception e) {
-        cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
-    }
+//	}catch (Exception e) {
+//        cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
+//    }
 
     return  result;
 }
