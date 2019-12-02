@@ -23,9 +23,12 @@ using namespace cv;
 using namespace std;
 
 extern int image_height,image_width;
-extern double theta_range;
+extern Mat origImg;
 static int image_height,image_width;
-static double theta_range=CV_PI*0.001;
+static Mat origImg;
+//此处控制阈值
+const int poolSize=100;
+const double theta_range=CV_PI*0.001;
 // 仿照matlab，自适应求高低两个门限
 void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)
 {
@@ -122,6 +125,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 	std::vector<cv::Vec2f>::const_iterator it = lines.begin();
     int sum_horizon=0,sum_vertical=0;
     const int direction=image_height-image_width;
+    double fix=0;
 	while (it != lines.end())
 	{
 		// 以下两个参数用来检测直线属于垂直线还是水平线
@@ -131,20 +135,21 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
             cv::Point pt1(rho / cos(theta), 0);
             cv::Point pt2((rho - result.rows*sin(theta)) / cos(theta), result.rows);
-            cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 5); //
+             //
 //            cout << "theta vertical " << lines_theta << endl;
             if(theta<theta_range||theta>2.*CV_PI-theta_range||(theta<CV_PI+theta_range&&theta>CV_PI-theta_range)){
                 sum_vertical++;
+                cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 1);
             }
 		}
 		else // 若检测为水平线,直线交于图片的左右两边,先找交点
 		{
             cv::Point pt1(0, rho / sin(theta));
             cv::Point pt2(result.cols, (rho - result.cols*cos(theta)) / sin(theta));
-            cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 5);
 //            cout << "theta horizon " << theta << endl;
             if((theta<CV_PI/2.+theta_range&&theta>CV_PI/2.-theta_range)||(theta<CV_PI*3./4.+theta_range&&theta>CV_PI*3./4.-theta_range)){
                 sum_horizon++;
+                cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 1);
             }
 		}
 		const int sum=max(sum_horizon,sum_vertical);
@@ -170,8 +175,6 @@ int CalcDegree(const Mat &srcImage, double &degree)
 {
 	Mat midImage,dstImage;
 	Mat tmpImage;
-	//此处控制阈值
-    const int poolSize=100;
 
 	vector<Vec2f> lines(poolSize);
 
@@ -277,7 +280,7 @@ int CalcDegree(const Mat &srcImage, double &degree)
     }
     //下面找到文字行所代表的横线
     //显示测试图片
-    Mat hough_img_line=srcImage.clone();
+    Mat hough_img_line=origImg.clone();
     const int sum=drawDetectedLines(hough_img_line,lines);
 //    imshow("Lines", hough_img_line);
 //    waitKey(0);
@@ -304,6 +307,7 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
         c_str = env->GetStringUTFChars(SrcPath, &isCopy);
         srcpath = c_str;
         sourceImage = imread(srcpath);
+        origImg=sourceImage.clone();
 	}catch (Exception e) {
         cout << "[file error]:" << e.msg << endl;
         return -1;
