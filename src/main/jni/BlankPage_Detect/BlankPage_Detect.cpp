@@ -19,6 +19,9 @@
 #include <math.h>
 #include <string.h>
 
+//调试开关
+#define DEBUG 0
+
 using namespace cv;
 using namespace std;
 
@@ -133,23 +136,27 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		float theta = (*it)[1];
 		if (theta < CV_PI / 4. || theta > 3. * CV_PI / 4.)
 		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
-            cv::Point pt1(rho / cos(theta), 0);
-            cv::Point pt2((rho - result.rows*sin(theta)) / cos(theta), result.rows);
              //
 //            cout << "theta vertical " << lines_theta << endl;
             if(theta<theta_range||theta>2.*CV_PI-theta_range||(theta<CV_PI+theta_range&&theta>CV_PI-theta_range)){
                 sum_vertical++;
+#if (DEBUG!=0)
+                cv::Point pt1(rho / cos(theta), 0);
+                cv::Point pt2((rho - result.rows*sin(theta)) / cos(theta), result.rows);
                 cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 1);
+#endif
             }
 		}
 		else // 若检测为水平线,直线交于图片的左右两边,先找交点
 		{
-            cv::Point pt1(0, rho / sin(theta));
-            cv::Point pt2(result.cols, (rho - result.cols*cos(theta)) / sin(theta));
 //            cout << "theta horizon " << theta << endl;
             if((theta<CV_PI/2.+theta_range&&theta>CV_PI/2.-theta_range)||(theta<CV_PI*3./4.+theta_range&&theta>CV_PI*3./4.-theta_range)){
                 sum_horizon++;
+#if (DEBUG!=0)
+                cv::Point pt1(0, rho / sin(theta));
+                cv::Point pt2(result.cols, (rho - result.cols*cos(theta)) / sin(theta));
                 cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 1);
+#endif
             }
 		}
 		const int sum=max(sum_horizon,sum_vertical);
@@ -231,7 +238,7 @@ int CalcDegree(const Mat &srcImage, double &degree)
     //imshow("Black white image", midImage);
     //waitKey(0);
 
-    const Mat hough_img=midImage.clone();
+    const Mat hough_img=midImage;
     //通过霍夫变换检测直线
     lines.clear();
     //通过逼近法求合适的值
@@ -280,10 +287,12 @@ int CalcDegree(const Mat &srcImage, double &degree)
     }
     //下面找到文字行所代表的横线
     //显示测试图片
-    Mat hough_img_line=origImg.clone();
+    Mat hough_img_line=origImg;
     const int sum=drawDetectedLines(hough_img_line,lines);
-//    imshow("Lines", hough_img_line);
-//    waitKey(0);
+#if (DEBUG!=0)
+    imshow("Lines", hough_img_line);
+    waitKey(0);
+#endif
 
     if(sum>3){
         return 0;
@@ -306,15 +315,15 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     try{
         c_str = env->GetStringUTFChars(SrcPath, &isCopy);
         srcpath = c_str;
-        sourceImage = imread(srcpath);
-        origImg=sourceImage.clone();
+        src = imread(srcpath);
+        origImg=src;
 	}catch (Exception e) {
         cout << "[file error]:" << e.msg << endl;
         return -1;
     }
 
-    cvtColor(sourceImage,src, COLOR_BGR2GRAY);
-    threshold(src, sourceImage, 127, 255, THRESH_BINARY);
+    cvtColor(src,sourceImage, COLOR_BGR2GRAY);
+    threshold(sourceImage, sourceImage, 127, 255, THRESH_BINARY);
 
     Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
     src = sourceImage(rect);
