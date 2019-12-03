@@ -31,7 +31,7 @@ static int image_height,image_width;
 static Mat origImg;
 //此处控制阈值
 const int poolSize=100;
-const double theta_range=CV_PI*0.001;
+const double theta_range=CV_PI*0.00001;
 // 仿照matlab，自适应求高低两个门限
 void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)
 {
@@ -147,7 +147,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		//求与极坐标垂直的直线
 		cv::Point l1(v_x_1, v_y_1);
 		cv::Point l2(h_x_1, h_y_1);
-		cv::line(result, l1, l2, cv::Scalar(127,127,127,127), 1);
+		cv::line(result, l1, l2, cv::Scalar(0,255,0,127), 1);
 #endif
 	    if (theta < CV_PI / 4. || theta > 3. * CV_PI / 4.)
 		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
@@ -167,7 +167,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 #if (DEBUG!=0)
                 cv::Point pt1(h_x_1, h_y_1);
                 cv::Point pt2(h_x_2, h_y_2);
-                cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 1);
+                cv::line(result, pt1, pt2, cv::Scalar(255,0,0), 1);
 #endif
             }
 		}
@@ -273,7 +273,10 @@ int CalcDegree(const Mat &srcImage, double &degree)
 #if (DEBUG!=0)
         cout << "lineCnt " << lineCnt << ", cur " << cur << ", min " << curmin << ", max " << curmax << endl;
 #endif
-        if(lineCnt<=3){ //要缩很小
+        if(cur<=1&&lineCnt<=3){
+            return INT_MAX;
+        }
+        else if(lineCnt<=3){ //要缩很小
             curmax=min(curmax,cur);
             cur=max(curmin++,(int)sqrt(cur));
             touchZero++;
@@ -282,20 +285,27 @@ int CalcDegree(const Mat &srcImage, double &degree)
         else if(lineCnt<poolSize){  //要缩小
             curmax=min(curmax,cur);
             cur=max(cur/2,curmin);
-
         }
         else if(lineCnt>poolSize){  //要增大
             curmin=max(curmin,cur);
             cur=min(curmax,(int)(cur*sqrt(cur)));
-            touch++;
             touchSame=0;
+            if(touchZero>0){
+                cur=min((curmax+curmin)/2,(int)(cur*1.5));
+            }
             touchZero=0;
+            if(lineCnt/poolSize<10+pow(10,touch)/abs(curmax-curmin)){
+                touch++;
+            }
         }
         else{
             break;
         }
 
         if(curmin++>=curmax--){
+            if(lineCnt<=3){
+                return INT_MAX;
+            }
             break;
         }
         else if(lineCnt==lastLineCnt){
@@ -305,12 +315,13 @@ int CalcDegree(const Mat &srcImage, double &degree)
         }
 
         if(touch>1){
-            int last=abs(poolSize-lastLineCnt);
-            int now=abs(poolSize-lineCnt);
-            if(last<now){
+#if (DEBUG!=0)
+            if(lastLineCnt<lineCnt&&lastLineCnt>poolSize/2){
                 HoughLines(hough_img, lines, 1, CV_PI / 180, lastCur, 0, 0);
                 cout << "return lineCnt " << lines.size() << ", cur " << lastCur << endl;
             }
+#endif
+            touchSame=0;
             break;
         }
 
@@ -361,13 +372,16 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     }
     cvtColor(src,sourceImage, COLOR_BGR2GRAY);
 #if (DEBUG<100)
-    threshold(sourceImage, sourceImage, 127, 255, THRESH_BINARY);
-#endif
+    threshold(sourceImage, src, 127, 255, THRESH_BINARY);
+    sourceImage=src;
+#else if(DEBUG==0)
     Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
     src = sourceImage(rect);
+    sourceImage=src;
+#endif
 
     try{
-        result = CalcDegree(src, degree);
+        result = CalcDegree(sourceImage, degree);
 	}catch (Exception e) {
         cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
     }
