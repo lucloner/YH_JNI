@@ -132,34 +132,47 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 	while (it != lines.end())
 	{
 		// 以下两个参数用来检测直线属于垂直线还是水平线
-		float rho = (*it)[0];
-		float theta = (*it)[1];
-		if (theta < CV_PI / 4. || theta > 3. * CV_PI / 4.)
+		double rho = (*it)[0];
+		double theta = (*it)[1];
+#if (DEBUG!=0)
+		//求画直线的点
+		double v_x_1=rho / cos(theta);
+		double v_y_1=0;
+		double v_x_2=(rho - result.rows*sin(theta)) / cos(theta);
+		double v_y_2=result.rows;
+		double h_x_1=0;
+		double h_y_1=rho / sin(theta);
+		double h_x_2=result.cols;
+		double h_y_2=(rho - result.cols*cos(theta)) / sin(theta);
+		//求与极坐标垂直的直线
+		cv::Point l1(v_x_1, v_y_1);
+		cv::Point l2(h_x_1, h_y_1);
+		cv::line(result, l1, l2, cv::Scalar(127,127,127,127), 1);
+#endif
+	    if (theta < CV_PI / 4. || theta > 3. * CV_PI / 4.)
 		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
-             //
-//            cout << "theta vertical " << lines_theta << endl;
             if(theta<theta_range||theta>2.*CV_PI-theta_range||(theta<CV_PI+theta_range&&theta>CV_PI-theta_range)){
                 sum_vertical++;
 #if (DEBUG!=0)
-                cv::Point pt1(rho / cos(theta), 0);
-                cv::Point pt2((rho - result.rows*sin(theta)) / cos(theta), result.rows);
+                cv::Point pt1(v_x_1, v_y_1);
+                cv::Point pt2(v_x_2, v_y_2);
                 cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 1);
 #endif
             }
 		}
 		else // 若检测为水平线,直线交于图片的左右两边,先找交点
 		{
-//            cout << "theta horizon " << theta << endl;
             if((theta<CV_PI/2.+theta_range&&theta>CV_PI/2.-theta_range)||(theta<CV_PI*3./4.+theta_range&&theta>CV_PI*3./4.-theta_range)){
                 sum_horizon++;
 #if (DEBUG!=0)
-                cv::Point pt1(0, rho / sin(theta));
-                cv::Point pt2(result.cols, (rho - result.cols*cos(theta)) / sin(theta));
+                cv::Point pt1(h_x_1, h_y_1);
+                cv::Point pt2(h_x_2, h_y_2);
                 cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 1);
 #endif
             }
 		}
 		const int sum=max(sum_horizon,sum_vertical);
+#if (DEBUG==0)
 		if(direction>0){
 		    if(sum_horizon>3){
 		        return sum;
@@ -172,6 +185,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		    }
 //		    cout << "sum_vertical " << sum_vertical << endl;
 		}
+#endif
 		++it;
 	}
 	return INT_MIN;
@@ -188,6 +202,7 @@ int CalcDegree(const Mat &srcImage, double &degree)
 	double low_thresh = 0.0;
 	double high_thresh = 0.0;
 
+#if (DEBUG<200)
 	try{
 		AdaptiveFindThreshold(&srcImage, &low_thresh, &high_thresh);
 	}catch (Exception e) {
@@ -234,7 +249,9 @@ int CalcDegree(const Mat &srcImage, double &degree)
     {
       Canny(srcImage, midImage, 10, 60, 3);
     }
-
+#else
+    midImage=srcImage;
+#endif
     //imshow("Black white image", midImage);
     //waitKey(0);
 
@@ -247,49 +264,70 @@ int CalcDegree(const Mat &srcImage, double &degree)
     const int width=image_width;
     const int height=image_height;
     //cout << "w " << width << " h " << height << endl;
-    int cur=max(width/4,height/4),lineCnt=0,lastLineCnt=-1,touch=0,touchSame=0,touchZero=0;
-    while(lineCnt<poolSize*2||(touch+touchSame+touchZero<5)){
-        HoughLines(hough_img, lines, 1, CV_PI / 180, cur, 0, 0);//第5个参数就是阈值，阈值越小，检测精度越高
+    int curmax=min(width,height),lineCnt=0,lastLineCnt=-1,touch=0,touchSame=0,touchZero=0,cur=curmax,curmin=0,lastCur=cur;
+    while(lineCnt<poolSize*2||(touchSame+touchZero<5)){
+        int tempCur=cur;
+        HoughLines(hough_img, lines, 1, CV_PI / 180, abs(cur), 0, 0);//第5个参数就是阈值，阈值越小，检测精度越高
         //由于图像不同，阈值不好设定，因为阈值设定过高导致无法检测直线，阈值过低直线太多，速度很慢
         lineCnt=lines.size();
-        //cout << "lineCnt " << lineCnt << ", cur " << cur << endl;
-        if(lineCnt>poolSize){
-            cur=cur*sqrt(cur)+1;
-            touch++;
+#if (DEBUG!=0)
+        cout << "lineCnt " << lineCnt << ", cur " << cur << ", min " << curmin << ", max " << curmax << endl;
+#endif
+        if(lineCnt<=3){ //要缩很小
+            curmax=min(curmax,cur);
+            cur=max(curmin++,(int)sqrt(cur));
+            touchZero++;
+            touch=0;
         }
-        else if(lineCnt<=1&&cur<=1){
-            return max(1,lastLineCnt);
+        else if(lineCnt<poolSize){  //要缩小
+            curmax=min(curmax,cur);
+            cur=max(cur/2,curmin);
+
+        }
+        else if(lineCnt>poolSize){  //要增大
+            curmin=max(curmin,cur);
+            cur=min(curmax,(int)(cur*sqrt(cur)));
+            touch++;
+            touchSame=0;
+            touchZero=0;
         }
         else{
-            if(lastLineCnt==lineCnt&&lineCnt!=0){
-                touch--;
-                touchZero=0;
-                touchSame++;
-            }
-            else if(lineCnt==0){
-                touch--;
-                touchSame--;
-                touchZero++;
-            }
-            cur=sqrt(cur)+touch;
-        }
-        if(touch>1){
-             break;
-        }
-        else if(touchSame>2){
             break;
         }
-        else if(touchZero>2){
-            return INT_MAX;
+
+        if(curmin++>=curmax--){
+            break;
+        }
+        else if(lineCnt==lastLineCnt){
+            touchSame++;
+            touchZero=0;
+            touch--;
+        }
+
+        if(touch>1){
+            int last=abs(poolSize-lastLineCnt);
+            int now=abs(poolSize-lineCnt);
+            if(last<now){
+                HoughLines(hough_img, lines, 1, CV_PI / 180, lastCur, 0, 0);
+                cout << "return lineCnt " << lines.size() << ", cur " << lastCur << endl;
+            }
+            break;
+        }
+
+        if(touchSame>2||touchZero>2){
+            break;
         }
 
         lastLineCnt=lineCnt;
+        lastCur=tempCur;
     }
     //下面找到文字行所代表的横线
     //显示测试图片
     Mat hough_img_line=origImg;
     const int sum=drawDetectedLines(hough_img_line,lines);
+
 #if (DEBUG!=0)
+    namedWindow("Lines",0);
     imshow("Lines", hough_img_line);
     waitKey(0);
 #endif
@@ -321,10 +359,10 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
         cout << "[file error]:" << e.msg << endl;
         return -1;
     }
-
     cvtColor(src,sourceImage, COLOR_BGR2GRAY);
+#if (DEBUG<100)
     threshold(sourceImage, sourceImage, 127, 255, THRESH_BINARY);
-
+#endif
     Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
     src = sourceImage(rect);
 

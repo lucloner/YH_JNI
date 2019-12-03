@@ -2,6 +2,7 @@ package net.vicp.biggee.jni;
 
 import com.BlankPageDetectDLL;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 
@@ -55,13 +56,13 @@ public class YH_JNI_main {
 
     public static void main(String[] args) {
         initJnilibPath();
-//        File file = new File("assert/test");
-//        Long now = System.currentTimeMillis();
-//        for (File listFile : file.listFiles()) {
-////            RemoveBlackBorderDll.RemoveBlackBorder(""+listFile, "assert/out-"+listFile.getName());
-//            System.out.println("***" + listFile + ":" + new BlankPageDetectDLL().BlankPageDetect("" + listFile));
-//        }
-//        System.out.println(System.currentTimeMillis() - now);
+        File file = new File("assert/test");
+        Long now = System.currentTimeMillis();
+        for (File listFile : file.listFiles()) {
+//            RemoveBlackBorderDll.RemoveBlackBorder(""+listFile, "assert/out-"+listFile.getName());
+            System.out.println("***" + listFile + ":" + new BlankPageDetectDLL().BlankPageDetect("" + listFile));
+        }
+        System.out.println(System.currentTimeMillis() - now);
 
 //        System.out.println("---------------------------");
 //        IdentityCard.IdentityCardTrans("assert/2.jpg", "assert/out-2.jpg");
