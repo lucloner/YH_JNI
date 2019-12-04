@@ -8,6 +8,9 @@
 #  include <sys/io.h>
 #else
 #  include <io.h>
+extern int image_height,image_width;
+extern double theta_offset;
+extern Mat origImg;
 #endif
 
 #include <math.h>
@@ -25,9 +28,6 @@
 using namespace cv;
 using namespace std;
 
-extern int image_height,image_width;
-extern double theta_offset;
-extern Mat origImg;
 static int image_height,image_width;
 static double theta_offset;
 static Mat origImg;
@@ -52,7 +52,7 @@ void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)
         size = dx->size();
         image_height=size.height;
         image_width=size.width;
-	}catch (Exception e) {
+	}catch (cv::Exception e) {
         cout << "[_AdaptiveFindThreshold]:" << e.msg << endl;
     }
 
@@ -115,7 +115,7 @@ void AdaptiveFindThreshold(const Mat* image, double *low, double *high, int aper
 
 	try{
 		_AdaptiveFindThreshold(&_dx, &_dy, low, high);
-	}catch (Exception e) {
+	}catch (cv::Exception e) {
         cout << "[AdaptiveFindThreshold]:" << e.msg << endl;
     }
 }
@@ -276,7 +276,7 @@ int CalcDegree(const Mat &srcImage, double &degree)
 
 	try{
 		AdaptiveFindThreshold(&binImage, &low_thresh, &high_thresh);
-	}catch (Exception e) {
+	}catch (cv::Exception e) {
         cout << "[CalcDegree]:" << e.msg << endl;
     }
 
@@ -444,14 +444,21 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     double degree=0.0;
     Mat src,tmpImg,dstImg;
     char *c_str;
+    string srcpath;
     try{
+#if defined(_WIN32) || defined(_WIN64)
         c_str=jstringToChar(env,SrcPath);
-        string srcpath = c_str;
+#else
+        jboolean isCopy;	// 返回JNI_TRUE表示原字符串的拷贝，返回JNI_FALSE表示返回原字符串的指针
+        srcpath=env->GetStringUTFChars(SrcPath,NULL);
+        c_str=srcpath.data();
+#endif
+        srcpath = c_str;
         src = imread(srcpath);
         origImg=src.clone();
         cvtColor(src,tmpImg,COLOR_BGR2GRAY);
         threshold(tmpImg,dstImg,127,255,THRESH_BINARY);
-	}catch (Exception e) {
+	}catch (cv::Exception e) {
         cout << "[file error]:" << e.msg << endl;
         return -1;
     }
@@ -460,7 +467,7 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
         result = CalcDegree(dstImg, degree);
         cout << result << "\t<-BlankPageDetect result(>0 isBlank),image[\t" << c_str << "\t](\t" << image_width << "\t,\t"
             << image_height << "\t)theta offset(deg):\t" << theta_offset/CV_PI*180 << endl;
-	}catch (Exception e) {
+	}catch (cv::Exception e) {
         cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
     }
 

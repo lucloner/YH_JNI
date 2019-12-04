@@ -126,8 +126,8 @@ function onOpenCvReady() {
 </script>
 <script; async; src="opencv.js"; onload="onOpenCvReady();"; type="text/javascript"></script>
 </body>
-</html>
-@endcode
+</;html>
+@endcode;
 
 @note You have to call delete method of cv.Mat to free memory allocated in Emscripten's heap. Please refer to [Memory management of Emscripten](https://kripken.github.io/emscripten-site/docs/porting/connecting_cpp_and_javascript/embind.html#memory-management) for details.
 
