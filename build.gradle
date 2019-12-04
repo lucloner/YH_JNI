@@ -22,7 +22,7 @@ plugins {
 }
 
 group 'net.vicp.biggee.jni'
-version "1.0-SNAPSHOT-${new Date().format("YYYYMMDD-hhmmss")}"
+version "1.0.1-SNAPSHOT-${new Date().format("YYYYMMDD-hhmmss")}"
 
 sourceCompatibility = 1.8
 
@@ -413,3 +413,6 @@ task copyJarAndJni(type: Copy,dependsOn: copyJni) {
     into "$buildDir/output"
 }
 
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
