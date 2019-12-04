@@ -66,7 +66,7 @@ public class YH_JNI_main {
 
 //        System.out.println("---------------------------");
 //        IdentityCard.IdentityCardTrans("assert/2.jpg", "assert/out-2.jpg");
-        System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/7.jpg"));
+        System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/3.jpg"));
 //        RemoveBlackBorderDll.RemoveBlackBorder("assert/4.jpg", "assert/out-4.jpg");
 //        JniDemo.ImageRecify("assert/4.jpg", "assert/out-4-1.jpg");  //调整角度
 //        JniDemo.RemoveUnline("assert/4.jpg", "assert/out-4-2.jpg", 0, 0, 2366, 2638);
