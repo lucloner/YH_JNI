@@ -31,7 +31,8 @@ static int image_height,image_width;
 static Mat origImg;
 //此处控制阈值
 const int poolSize=100;
-const double theta_range=CV_PI*0.00001;
+const double divideRate=1000;
+const double theta_range=CV_PI/divideRate;
 // 仿照matlab，自适应求高低两个门限
 void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)
 {
@@ -194,64 +195,70 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 //通过霍夫变换计算角度
 int CalcDegree(const Mat &srcImage, double &degree)
 {
-	Mat midImage,dstImage;
-	Mat tmpImage;
+	Mat midImage,dstImage,tmpImage;
+    //去除边上下左右5%
+    const int h_boarder=srcImage.rows*0.1;
+    const int w_boarder=srcImage.cols*0.1;
+
+    Rect rect(w_boarder, h_boarder, srcImage.cols-w_boarder, srcImage.rows-h_boarder);
+    tmpImage = srcImage(rect);
 
 	vector<Vec2f> lines(poolSize);
 
 	double low_thresh = 0.0;
 	double high_thresh = 0.0;
 
-#if (DEBUG<200)
 	try{
-		AdaptiveFindThreshold(&srcImage, &low_thresh, &high_thresh);
+		AdaptiveFindThreshold(&tmpImage, &low_thresh, &high_thresh);
 	}catch (Exception e) {
         cout << "[CalcDegree]:" << e.msg << endl;
     }
 
+    //获得图片大小
+    const int width=image_width;
+    const int height=image_height;
+
 	if (high_thresh < 2)
     {
-      Canny(srcImage, midImage, low_thresh, high_thresh * 200, 3);
+      Canny(tmpImage, midImage, low_thresh, high_thresh * 200, 3);
     }
     else if (high_thresh < 4)
     {
-      Canny(srcImage, midImage, low_thresh, high_thresh * 100, 3);
+      Canny(tmpImage, midImage, low_thresh, high_thresh * 100, 3);
     }
     else if (high_thresh < 10)
     {
-      Canny(srcImage, midImage, low_thresh, high_thresh * 40, 3);
+      Canny(tmpImage, midImage, low_thresh, high_thresh * 40, 3);
     }
     else if (high_thresh < 20)
     {
-      Canny(srcImage, midImage, low_thresh * 10, high_thresh * 30, 3);
+      Canny(tmpImage, midImage, low_thresh * 10, high_thresh * 30, 3);
     }
     else if (high_thresh < 30)
     {
-      Canny(srcImage, midImage, low_thresh * 10, high_thresh * 20, 3);
+      Canny(tmpImage, midImage, low_thresh * 10, high_thresh * 20, 3);
     }
     else if (high_thresh < 40)
     {
-      Canny(srcImage, midImage, low_thresh * 10, high_thresh * 10, 3);
+      Canny(tmpImage, midImage, low_thresh * 10, high_thresh * 10, 3);
     }
     else if (high_thresh < 50)
     {
-      Canny(srcImage, midImage, low_thresh * 10, high_thresh * 2, 3);
+      Canny(tmpImage, midImage, low_thresh * 10, high_thresh * 2, 3);
     }
     else if (high_thresh < 60)
     {
-      Canny(srcImage, midImage, low_thresh * 10, high_thresh, 3);
+      Canny(tmpImage, midImage, low_thresh * 10, high_thresh, 3);
     }
     else if (high_thresh < 70)
     {
-      Canny(srcImage, midImage, low_thresh, high_thresh, 3);
+      Canny(tmpImage, midImage, low_thresh, high_thresh, 3);
     }
     else
     {
-      Canny(srcImage, midImage, 10, 60, 3);
+      Canny(tmpImage, midImage, 10, 60, 3);
     }
-#else
-    midImage=srcImage;
-#endif
+
     //imshow("Black white image", midImage);
     //waitKey(0);
 
@@ -259,10 +266,6 @@ int CalcDegree(const Mat &srcImage, double &degree)
     //通过霍夫变换检测直线
     lines.clear();
     //通过逼近法求合适的值
-    //获得图片大小
-    //CvSize size=midImage.size();
-    const int width=image_width;
-    const int height=image_height;
     //cout << "w " << width << " h " << height << endl;
     int curmax=min(width,height),lineCnt=0,lastLineCnt=-1,touch=0,touchSame=0,touchZero=0,cur=curmax,curmin=0,lastCur=cur;
     while(lineCnt<poolSize*2||(touchSame+touchZero<5)){
@@ -373,10 +376,6 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     cvtColor(src,sourceImage, COLOR_BGR2GRAY);
 #if (DEBUG<100)
     threshold(sourceImage, src, 127, 255, THRESH_BINARY);
-    sourceImage=src;
-#else if(DEBUG==0)
-    Rect rect(100, 60/*srcImg.rows /4*/, sourceImage.cols - 200, sourceImage.rows - 200);
-    src = sourceImage(rect);
     sourceImage=src;
 #endif
 
