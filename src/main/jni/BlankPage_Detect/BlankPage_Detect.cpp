@@ -20,7 +20,7 @@
 #include <string.h>
 
 //调试开关 0正常 1调试显示窗口 2调试不显示窗口
-#define DEBUG 2
+#define DEBUG 1
 
 using namespace cv;
 using namespace std;
@@ -131,10 +131,10 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
     //判断页面方向
     const int direction=image_height-image_width;
     //计算页面直线区域,同区域的执行不可以重复记录
-    const int v_grid_length=image_width/poolSize;
-    const int h_grid_length=image_height/poolSize;
-    int v_grid[poolSize+1];
-    int h_grid[poolSize+1];
+    const double v_grid_length=image_width/poolSize/2;
+    const double h_grid_length=image_height/poolSize/2;
+    int v_grid[poolSize*2+1];
+    int h_grid[poolSize*2+1];
 
     //计算角度修正
     const double theta_fix_length=CV_PI*2/poolSize;
@@ -167,6 +167,9 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		cv::line(result, l1, l2, cv::Scalar(0,255,0,127), 1);
 		cout << theta << " theta,rho " << rho << " direction " << direction << endl;
 #endif
+        //整理角度
+        theta=theta<0?CV_PI*2.+theta:theta;
+        theta=theta>CV_PI?theta-CV_PI:theta;
 
         //根据页面方向计算修正
         double temp_offset;
@@ -178,7 +181,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
         	    temp_offset=theta;
         	    temp_max=theta_sum;
         	}
-       		if(abs(temp_offset)<CV_PI/4.){
+       		if(abs(temp_offset)<CV_PI/8.){
        		    theta-=temp_offset;
        		    v_theta_offset=temp_offset;
        		    v_theta_fix_max=temp_max;
@@ -188,11 +191,11 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
             temp_offset=h_theta_offset;
             temp_max=h_theta_fix_max;
     		if(theta_sum>temp_max){
-        	    temp_offset=CV_PI/4.-theta;
+        	    temp_offset=CV_PI/2.-theta;
         	    temp_max=theta_sum;
         	}
-       		if(abs(temp_offset)<CV_PI/4.){
-       		    theta-=temp_offset;
+       		if(abs(temp_offset)<CV_PI/8.){
+       		    theta+=temp_offset;
        		    h_theta_offset=temp_offset;
        		    h_theta_fix_max=temp_max;
        		}
@@ -251,14 +254,15 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 //通过霍夫变换计算角度
 int CalcDegree(const Mat &srcImage, double &degree)
 {
-	Mat tmpImage;
+	Mat tmpImage,grayImage,binImage;
     //去除边上下左右5%
     const int h_boarder=srcImage.rows*0.1;
     const int w_boarder=srcImage.cols*0.1;
     //裁切
     Rect rect(w_boarder, h_boarder, srcImage.cols-w_boarder, srcImage.rows-h_boarder);
     const Mat orig = srcImage(rect);
-    origImg=orig;
+    origImg=origImg(rect);
+    binImage=orig;
 
 	vector<Vec2f> lines(poolSize);
 
@@ -266,7 +270,7 @@ int CalcDegree(const Mat &srcImage, double &degree)
 	double high_thresh = 0.0;
 
 	try{
-		AdaptiveFindThreshold(&orig, &low_thresh, &high_thresh);
+		AdaptiveFindThreshold(&binImage, &low_thresh, &high_thresh);
 	}catch (Exception e) {
         cout << "[CalcDegree]:" << e.msg << endl;
     }
@@ -277,43 +281,43 @@ int CalcDegree(const Mat &srcImage, double &degree)
 
 	if (high_thresh < 2)
     {
-      Canny(orig, tmpImage, low_thresh, high_thresh * 200, 3);
+      Canny(binImage, tmpImage, low_thresh, high_thresh * 200, 3);
     }
     else if (high_thresh < 4)
     {
-      Canny(orig, tmpImage, low_thresh, high_thresh * 100, 3);
+      Canny(binImage, tmpImage, low_thresh, high_thresh * 100, 3);
     }
     else if (high_thresh < 10)
     {
-      Canny(orig, tmpImage, low_thresh, high_thresh * 40, 3);
+      Canny(binImage, tmpImage, low_thresh, high_thresh * 40, 3);
     }
     else if (high_thresh < 20)
     {
-      Canny(orig, tmpImage, low_thresh * 10, high_thresh * 30, 3);
+      Canny(binImage, tmpImage, low_thresh * 10, high_thresh * 30, 3);
     }
     else if (high_thresh < 30)
     {
-      Canny(orig, tmpImage, low_thresh * 10, high_thresh * 20, 3);
+      Canny(binImage, tmpImage, low_thresh * 10, high_thresh * 20, 3);
     }
     else if (high_thresh < 40)
     {
-      Canny(orig, tmpImage, low_thresh * 10, high_thresh * 10, 3);
+      Canny(binImage, tmpImage, low_thresh * 10, high_thresh * 10, 3);
     }
     else if (high_thresh < 50)
     {
-      Canny(orig, tmpImage, low_thresh * 10, high_thresh * 2, 3);
+      Canny(binImage, tmpImage, low_thresh * 10, high_thresh * 2, 3);
     }
     else if (high_thresh < 60)
     {
-      Canny(orig, tmpImage, low_thresh * 10, high_thresh, 3);
+      Canny(binImage, tmpImage, low_thresh * 10, high_thresh, 3);
     }
     else if (high_thresh < 70)
     {
-      Canny(orig, tmpImage, low_thresh, high_thresh, 3);
+      Canny(binImage, tmpImage, low_thresh, high_thresh, 3);
     }
     else
     {
-      Canny(orig, tmpImage, 10, 60, 3);
+      Canny(binImage, tmpImage, 10, 60, 3);
     }
 
     //imshow("Black white image", tmpImage);
@@ -438,12 +442,13 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
         char *c_str=jstringToChar(env,SrcPath);
         string srcpath = c_str;
         src = imread(srcpath);
+        origImg=src.clone();
+        cvtColor(src,tmpImg,COLOR_BGR2GRAY);
+        threshold(tmpImg,dstImg,127,255,THRESH_BINARY);
 	}catch (Exception e) {
         cout << "[file error]:" << e.msg << endl;
         return -1;
     }
-    cvtColor(src,tmpImg, COLOR_BGR2GRAY);
-    threshold(tmpImg, dstImg, 127, 255, THRESH_BINARY);
 
     try{
         result = CalcDegree(dstImg, degree);
