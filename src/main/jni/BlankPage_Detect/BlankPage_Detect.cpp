@@ -302,18 +302,40 @@ int CalcDegree(const Mat &srcImage, double &degree)
     return max(sum+lineCnt,1);
 }
 
+char* jstringToChar(JNIEnv *env, jstring jstr)
+{
+    char * rtn = NULL;
+    jclass clsstring = env->FindClass("java/lang/String");
+    jstring strencode = env->NewStringUTF("GBK");
+    jmethodID mid = env->GetMethodID(clsstring, "getBytes", "(Ljava/lang/String;)[B");
+    jbyteArray barr= (jbyteArray)env->CallObjectMethod(jstr,mid,strencode);
+    jsize alen = env->GetArrayLength(barr);
+    jbyte * ba = env->GetByteArrayElements(barr,JNI_FALSE);
+    if(alen > 0)
+    {
+        rtn = (char*)malloc(alen+1); //new char[alen+1];
+        memcpy(rtn,ba,alen);
+        rtn[alen]=0;
+    }
+    env->ReleaseByteArrayElements(barr,ba,0);
+
+    return rtn;
+}
+
 JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
 (JNIEnv *env, jclass cls, jstring SrcPath)
 {
     int result = 0;
-    const char *c_str = NULL;
     jboolean isCopy;	// 返回JNI_TRUE表示原字符串的拷贝，返回JNI_FALSE表示返回原字符串的指针
     string srcpath;
     double degree=0.0;
     Mat sourceImage;
     Mat src;
     try{
-        c_str = env->GetStringUTFChars(SrcPath, &isCopy);
+        char *c_str=jstringToChar(env,SrcPath);
+        cout << c_str << endl;
+        //return 1;
+        //c_str = env->GetStringChars(SrcPath, &isCopy);
         srcpath = c_str;
         src = imread(srcpath);
         origImg=src;

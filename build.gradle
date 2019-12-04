@@ -413,3 +413,7 @@ task copyJarAndJni(type: Copy,dependsOn: copyJni) {
     into "$buildDir/output"
 }
 
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
