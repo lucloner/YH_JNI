@@ -20,14 +20,16 @@
 #include <string.h>
 
 //调试开关 0正常 1调试显示窗口 2调试不显示窗口
-#define DEBUG 1
+#define DEBUG 0
 
 using namespace cv;
 using namespace std;
 
 extern int image_height,image_width;
+extern double theta_offset;
 extern Mat origImg;
 static int image_height,image_width;
+static double theta_offset;
 static Mat origImg;
 //此处控制阈值
 const int poolSize=100;
@@ -137,8 +139,8 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
     int h_grid[poolSize*2+1];
 
     //计算角度修正
-    const double theta_fix_length=CV_PI*2/poolSize;
-    int theta_fix[poolSize+1];
+    const double theta_fix_length=theta_range/2;
+    int theta_fix[(int)(divideRate*2+1)];
     double v_theta_offset=0;
     double h_theta_offset=0;
     int v_theta_fix_max=0;
@@ -167,8 +169,9 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		cv::line(result, l1, l2, cv::Scalar(0,255,0,127), 1);
 		cout << theta << " theta,rho " << rho << " direction " << direction << endl;
 #endif
-        //整理角度
-        theta=theta<0?CV_PI*2.+theta:theta;
+        //整理角度 使范围在[0,pi]之间
+        theta=fmod(theta,CV_PI*2.);
+        theta=theta<0?CV_PI+theta:theta;
         theta=theta>CV_PI?theta-CV_PI:theta;
 
         //根据页面方向计算修正
@@ -177,7 +180,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
         if(direction<0){//如果是竖线
             temp_offset=v_theta_offset;
             temp_max=v_theta_fix_max;
-    		if(theta_sum>temp_max){
+    		if(theta_sum>=temp_max){
         	    temp_offset=theta;
         	    temp_max=theta_sum;
         	}
@@ -185,12 +188,13 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
        		    theta-=temp_offset;
        		    v_theta_offset=temp_offset;
        		    v_theta_fix_max=temp_max;
+       		    theta_offset=temp_offset;
        		}
         }
-        else {
+        else {//视为横线
             temp_offset=h_theta_offset;
             temp_max=h_theta_fix_max;
-    		if(theta_sum>temp_max){
+    		if(theta_sum>=temp_max){
         	    temp_offset=CV_PI/2.-theta;
         	    temp_max=theta_sum;
         	}
@@ -198,6 +202,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
        		    theta+=temp_offset;
        		    h_theta_offset=temp_offset;
        		    h_theta_fix_max=temp_max;
+       		    theta_offset=temp_offset;
        		}
         }
 
@@ -438,8 +443,9 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
     int result = 0;
     double degree=0.0;
     Mat src,tmpImg,dstImg;
+    char *c_str;
     try{
-        char *c_str=jstringToChar(env,SrcPath);
+        c_str=jstringToChar(env,SrcPath);
         string srcpath = c_str;
         src = imread(srcpath);
         origImg=src.clone();
@@ -452,6 +458,8 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
 
     try{
         result = CalcDegree(dstImg, degree);
+        cout << result << "\t<-BlankPageDetect result(>0 isBlank),image[\t" << c_str << "\t](\t" << image_width << "\t,\t"
+            << image_height << "\t)theta offset(deg):\t" << theta_offset/CV_PI*180 << endl;
 	}catch (Exception e) {
         cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
     }
