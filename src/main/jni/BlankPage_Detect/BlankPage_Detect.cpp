@@ -5,12 +5,12 @@
 #include <iostream>
 #include <fcntl.h>
 #if defined(__linux__) || defined(__linux)
-#  include <sys/io.h>
+#   include <sys/io.h>
 #else
-#  include <io.h>
-extern int image_height,image_width;
-extern double theta_offset;
-extern Mat origImg;
+#   include <io.h>
+    extern int image_height,image_width;
+    extern double theta_offset;
+    extern cv::Mat origImg;
 #endif
 
 #include <math.h>
@@ -151,7 +151,6 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		// 以下两个参数用来检测直线属于垂直线还是水平线
 		const double rho = (*it)[0];
 		double theta = (*it)[1];
-		const int theta_sum=++theta_fix[(int)(theta/theta_fix_length)];
 
 		//求画直线的点
 		const double v_x_1=rho / cos(theta);
@@ -174,10 +173,14 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
         theta=theta<0?CV_PI+theta:theta;
         theta=theta>CV_PI?theta-CV_PI:theta;
 
-        //根据页面方向计算修正
+        //根据页面方向计算修正 下面为公用参数
+        const int theta_sum=++theta_fix[(int)(theta/theta_fix_length)]; //按区域计算
         double temp_offset;
         int temp_max;
-        if(direction<0){//如果是竖线
+
+	    if (theta <CV_PI/4. || theta > 3.*CV_PI/4.)
+		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
+		    //计算偏移
             temp_offset=v_theta_offset;
             temp_max=v_theta_fix_max;
     		if(theta_sum>=temp_max){
@@ -190,24 +193,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
        		    v_theta_fix_max=temp_max;
        		    theta_offset=temp_offset;
        		}
-        }
-        else {//视为横线
-            temp_offset=h_theta_offset;
-            temp_max=h_theta_fix_max;
-    		if(theta_sum>=temp_max){
-        	    temp_offset=CV_PI/2.-theta;
-        	    temp_max=theta_sum;
-        	}
-       		if(abs(temp_offset)<CV_PI/8.){
-       		    theta+=temp_offset;
-       		    h_theta_offset=temp_offset;
-       		    h_theta_fix_max=temp_max;
-       		    theta_offset=temp_offset;
-       		}
-        }
-
-	    if (theta <CV_PI/4. || theta > 3.*CV_PI/4.)
-		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
+       		//计算竖线数量
             if(theta<theta_range||theta>2.*CV_PI-theta_range||(theta<CV_PI+theta_range&&theta>CV_PI-theta_range)){
                 int sum_v_grid=max(v_grid[(int)(v_x_1/v_grid_length)]++,v_grid[(int)(v_x_2/v_grid_length)]++);
                 if(sum_v_grid<3){
@@ -223,6 +209,20 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		}
 		else // 若检测为水平线,直线交于图片的左右两边,先找交点
 		{
+		    //计算横线偏移
+            temp_offset=h_theta_offset;
+            temp_max=h_theta_fix_max;
+    		if(theta_sum>=temp_max){
+        	    temp_offset=CV_PI/2.-theta;
+        	    temp_max=theta_sum;
+        	}
+       		if(abs(temp_offset)<CV_PI/8.){
+       		    theta+=temp_offset;
+       		    h_theta_offset=temp_offset;
+       		    h_theta_fix_max=temp_max;
+       		    theta_offset=temp_offset;
+       		}
+       		//计算横线数量
             if((theta<CV_PI/2.+theta_range&&theta>CV_PI/2.-theta_range)||(theta<CV_PI*3./4.+theta_range&&theta>CV_PI*3./4.-theta_range)){
                 int sum_h_grid=max(h_grid[(int)(h_y_1/h_grid_length)]++,h_grid[(int)(h_y_2/h_grid_length)]++);
                 if(sum_h_grid<3){
@@ -437,6 +437,18 @@ char* jstringToChar(JNIEnv *env, jstring jstr)
     return rtn;
 }
 
+jobject* setJobject(JNIEnv *env, jclass* cls, jobject* data,const string* dataField,const void* dataPointer){
+    jclass clz = env->GetObjectClass(*cls);
+    string jType="(Ljava/lang/String;)V";
+    jmethodID setMethond = env->GetMethodID(clz, dataField->c_str(), "(Ljava/lang/String;)V");
+    jstring str = env->NewStringUTF(jType.c_str());
+    cout << 4<< endl;
+    env->CallVoidMethod(*data, setMethond, str);
+    cout << 5<< endl;
+    //cout << typeid(dwVarArg) << endl;
+    return data;
+}
+
 JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
 (JNIEnv *env, jclass cls, jstring SrcPath)
 {
@@ -460,12 +472,12 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
         threshold(tmpImg,dstImg,127,255,THRESH_BINARY);
 	}catch (cv::Exception e) {
         cout << "[file error]:" << e.msg << endl;
-        return -1;
+        return result;
     }
 
     try{
         result = CalcDegree(dstImg, degree);
-        cout << result << "\t<-BlankPageDetect result(>0 isBlank),image[\t" << c_str << "\t](\t" << image_width << "\t,\t"
+        cout << "\n" << result << "\t<-BlankPageDetect result(>0 isBlank),image[\t" << c_str << "\t](\t" << image_width << "\t,\t"
             << image_height << "\t)theta offset(deg):\t" << theta_offset/CV_PI*180 << endl;
 	}catch (cv::Exception e) {
         cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
