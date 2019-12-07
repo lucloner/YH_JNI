@@ -132,15 +132,17 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
     int sum_horizon=0,sum_vertical=0;
     //判断页面方向
     const int direction=image_height-image_width;
+    //区域运算修正值
+    const int grid_seprate=1;
     //计算页面直线区域,同区域的执行不可以重复记录
-    const double v_grid_length=image_width/poolSize/2;
-    const double h_grid_length=image_height/poolSize/2;
-    int v_grid[poolSize*2+1];
-    int h_grid[poolSize*2+1];
+    const double v_grid_length=image_width/poolSize/grid_seprate;
+    const double h_grid_length=image_height/poolSize/grid_seprate;
+    int v_grid[poolSize*grid_seprate+1];
+    int h_grid[poolSize*grid_seprate+1];
 
     //计算角度修正
-    const double theta_fix_length=theta_range/2;
-    int theta_fix[(int)(divideRate*2+1)];
+    const double theta_fix_length=theta_range/grid_seprate;
+    int theta_fix[(int)(divideRate*grid_seprate+1)];
     double v_theta_offset=0;
     double h_theta_offset=0;
     int v_theta_fix_max=0;
@@ -178,7 +180,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
         double temp_offset;
         int temp_max;
 
-	    if (theta <CV_PI/4. || theta > 3.*CV_PI/4.)
+	    if (abs(theta) <CV_PI/4. || theta > 3.*CV_PI/4.)
 		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
 		    //计算偏移
             temp_offset=v_theta_offset;
@@ -194,7 +196,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
        		    theta_offset=temp_offset;
        		}
        		//计算竖线数量
-            if(theta<theta_range||theta>2.*CV_PI-theta_range||(theta<CV_PI+theta_range&&theta>CV_PI-theta_range)){
+            if(abs(theta)<theta_range||abs(CV_PI-theta)<theta_range){
                 int sum_v_grid=max(v_grid[(int)(v_x_1/v_grid_length)]++,v_grid[(int)(v_x_2/v_grid_length)]++);
                 if(sum_v_grid<3){
                     sum_vertical++;
@@ -223,7 +225,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
        		    theta_offset=temp_offset;
        		}
        		//计算横线数量
-            if((theta<CV_PI/2.+theta_range&&theta>CV_PI/2.-theta_range)||(theta<CV_PI*3./4.+theta_range&&theta>CV_PI*3./4.-theta_range)){
+            if(abs(theta-CV_PI/2.)<theta_range||abs(theta-0.75*CV_PI)>theta_range){
                 int sum_h_grid=max(h_grid[(int)(h_y_1/h_grid_length)]++,h_grid[(int)(h_y_2/h_grid_length)]++);
                 if(sum_h_grid<3){
                     sum_horizon++;
