@@ -33,7 +33,7 @@ static double theta_offset;
 static Mat origImg;
 //此处控制阈值
 const int poolSize=100;
-const double divideRate=1000;
+const double divideRate=1440;
 const double theta_range=CV_PI*2/divideRate;
 // 仿照matlab，自适应求高低两个门限
 void _AdaptiveFindThreshold(Mat *dx, Mat *dy, double *low, double *high)
@@ -225,7 +225,7 @@ int drawDetectedLines(Mat& result,vector<Vec2f> lines){
        		    theta_offset=temp_offset;
        		}
        		//计算横线数量
-            if(abs(theta-CV_PI/2.)<theta_range||abs(theta-0.75*CV_PI)>theta_range){
+            if(abs(theta-CV_PI/2.)<theta_range||abs(theta-1.5*CV_PI)<theta_range){
                 int sum_h_grid=max(h_grid[(int)(h_y_1/h_grid_length)]++,h_grid[(int)(h_y_2/h_grid_length)]++);
                 if(sum_h_grid<3){
                     sum_horizon++;
@@ -479,7 +479,7 @@ JNIEXPORT jint JNICALL Java_com_BlankPageDetectDLL_BlankPageDetect
 
     try{
         result = CalcDegree(dstImg, degree);
-        cout << "\n" << result << "\t<-BlankPageDetect result(>0 isBlank),image[\t" << c_str << "\t](\t" << image_width << "\t,\t"
+        cout << "\t" << result << "\t<-BlankPageDetect result(>0 isBlank),image[\t" << c_str << "\t](\t" << image_width << "\t,\t"
             << image_height << "\t)theta offset(deg):\t" << theta_offset/CV_PI*180 << endl;
 	}catch (cv::Exception e) {
         cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
