@@ -22,7 +22,7 @@ plugins {
 }
 
 group 'net.vicp.biggee.jni'
-version "1.0-SNAPSHOT-${new Date().format("YYYYMMDD-hhmmss")}"
+version "1.0.1-SNAPSHOT-${new Date().format("YYYYMMdd-hhmmss")}"
 
 sourceCompatibility = 1.8
 
@@ -68,12 +68,67 @@ def copyNativeDepsDirlist = []
 
 def headerList = ["src/main/jni/headers"]
 
+def linux_libs=[]
+def linux_additional_libs=[]
+
+task getPkgConf(type:Exec) {
+    workingDir '/usr/bin'
+    commandLine 'pkg-config','--libs', 'opencv'
+    //store the output instead of printing to the console:
+    standardOutput = new ByteArrayOutputStream()
+    //extension method stopTomcat.output() can be used to obtain the output:
+    ext.output = {
+        return standardOutput.toString()
+    }
+
+    doLast {
+        //动态添加库，并确定库的可用性
+        def opencv_libs = getPkgConf.output()
+        //println "opencv pkg-config: $opencv_libs"
+        def opencv_libs_list =opencv_libs.toString().split(' ').toList()
+        opencv_libs_list.addAll linux_additional_libs
+        //println "linker add additional opencv libs try: $opencv_libs_list"
+        for (l in opencv_libs_list) {
+            //println "linker add additional lib path try: $l !"
+            def lPath = l.toString()
+            if (lPath == null || lPath.isBlank()) {
+                continue
+            }
+            def f = file(lPath)
+            //println "linker add additional lib file try: $f !"
+            if (f != null && f.exists()) {
+                linux_libs.add f
+                println "linker add additional lib: $f !"
+            }
+        }
+
+        for (t in tasks) {
+            if (t instanceof LinkSharedLibrary) {
+                for(l in linux_libs){
+                    t.linkerArgs.add(l.toString())
+                }
+                println t.name+" Linker args:"+t.linkerArgs.getAt("orNull")
+            }
+        }
+    }
+}
+
 if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
     JNI_INCLUDE_DIR = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
     JNI_LIB_DIR = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
     JNI_INCLUDE_DIR_HEADERS = "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/linux"
     headerList.add "/usr/local/include"
     headerList.add "/usr/local/include/opencv4"
+    def libPath=this.properties['linux.lib.additional.dir']
+    def targetLibs=this.properties['linux.lib.additional'].toString().split(',').toList()
+    def allLibs=file(libPath).listFiles()
+    for(libFile in allLibs){
+        for(targetLib in targetLibs){
+            if(libFile.name.contains(targetLib)){
+                linux_additional_libs.add libFile.absoluteFile
+            }
+        }
+    }
 } else if (org.gradle.internal.os.OperatingSystem.current().isWindows()) {
     filelist.add(file("src/main/jni/opencv-4.1.2/build/x64/vc15/bin/opencv_world412.dll").path)
     headerList.add "src/main/jni/opencv-4.1.2/build/include"
@@ -103,7 +158,6 @@ def template_binaries_all = {
         cCompiler.args "-O2", "-fno-access-control"
         cCompiler.args "-ggdb"
         cCompiler.args "-v"
-        cppCompiler.args "-std=c++11"
         linker.args "-Xlinker", "-S"
         linker.args "-v"
     }
@@ -114,10 +168,10 @@ def template_binaries_all = {
         linker.args "/ALIGN 4096"
         linker.args "/DLL"
         linker.args "/LARGEADDRESSAWARE"
-//        cppCompiler.args "/Zi"
-//        cppCompiler.args "/EHa"
-//        cppCompiler.args "/O2"
-//        cppCompiler.args "/GL"
+        cCompiler.args "/Zi"
+        cCompiler.args "/EHa"
+        cCompiler.args "/O2"
+        cCompiler.args "/GL"
         linker.args "src/main/jni/opencv-4.1.2/build/x64/vc15/lib/opencv_world412.lib"
     }
 
@@ -152,18 +206,22 @@ def template_binaries_all = {
     } else if (targetPlatform.operatingSystem.windows) {
         cCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
         cCompiler.args "-I${org.gradle.internal.jvm.Jvm.current().javaHome}/include/win32"
-//        linker.args "Shlwapi.lib", "Advapi32.lib"
+        linker.args "Shlwapi.lib", "Advapi32.lib"
     } else if (targetPlatform.operatingSystem.freeBSD) {
         cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include"
         cCompiler.args '-I', "${org.gradle.internal.jvm.Jvm.current().javaHome}/include/freebsd"
     }
     println "****************[" + it + "]****************"
-    println "C Compiler args:"
-    println cCompiler.args
     cppCompiler.args.addAll cCompiler.args
-    if (it.toString().contains("shared")) {
+    if(toolChain in Gcc){
+        cCompiler.args "-std=gnu11"
+        cppCompiler.args "-std=c++1z"
+    }
+    if (it instanceof SharedLibraryBinarySpec) {
         println "****************[" + it.sharedLibraryFile + "]****************"
     }
+    println "C Compiler args:"
+    println cCompiler.args
     println "C++ Compiler args:"
     println cppCompiler.args
     println "****************[" + toolChain + "]****************"
@@ -173,12 +231,6 @@ def template_buildTypes = {
     debug
     release
 }
-
-//def opencv_Headers=this.fileTree(dir:'src/main/jni/opencv-4.1.2',include:'**/*.h*')
-//for(opencv_h in opencv_Headers){
-//    println 'found header: '+opencv_h
-//}
-
 
 model {
     components {
@@ -351,23 +403,6 @@ model {
     }
 }
 
-task copyNativeDeps(type: Copy) {
-    from copyNativeDepsDirlist
-    into rootProject.file('jnilibs')
-}
-
-copyNativeDeps.doFirst {
-    for (t in tasks) {
-        if (t instanceof LinkSharedLibrary) {
-            copyNativeDepsDirlist.add(t.linkedFile)
-        }
-    }
-}
-
-copyNativeDeps.doLast {
-    println "copyNativeDeps:" + copyNativeDepsDirlist
-}
-
 task clearNativeDeps(type: Delete) {
     def jnilibsDir = file('jnilibs')
     if (jnilibsDir.isDirectory()) {
@@ -389,6 +424,36 @@ sourceSets {
     }
 }
 
+task compileJniWrapper{
+    println '+++compileJniWrapper+++空任务,为了区分调度编译与编译参数之间的任务+++compileJniWrapper+++'
+
+    doFirst {
+        println '+++compileJniWrapper+++运行时，开始+++compileJniWrapper+++'
+    }
+
+    doLast {
+        println '+++compileJniWrapper+++运行时，结束+++compileJniWrapper+++'
+    }
+}
+
+task copyNativeDeps(type: Copy,dependsOn: compileJniWrapper) {
+    mustRunAfter "getPkgConf","compileJniWrapper"
+    from copyNativeDepsDirlist
+    into rootProject.file('jnilibs')
+
+    doFirst {
+        for (t in tasks) {
+            if (t instanceof LinkSharedLibrary) {
+                copyNativeDepsDirlist.add(t.linkedFile)
+            }
+        }
+    }
+    doLast {
+        println "copyNativeDeps:" + copyNativeDepsDirlist
+    }
+}
+
+
 tasks.compileJava.dependsOn 'copyNativeDeps'
 tasks.clean.dependsOn 'clearNativeDeps'
 
@@ -409,6 +474,7 @@ task copyJni(type: Copy,dependsOn: jar) {
 
 
 task copyJarAndJni(type: Copy,dependsOn: copyJni) {
+    shouldRunAfter jar
     from jar.archiveFile
     into "$buildDir/output"
 }
@@ -417,3 +483,7 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
+if (org.gradle.internal.os.OperatingSystem.current().isLinux()) {
+    tasks.compileJniWrapper.dependsOn 'getPkgConf'
+    tasks.compileJniWrapper.shouldRunAfter 'getPkgConf'
+}
