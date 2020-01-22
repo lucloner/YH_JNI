@@ -36,6 +36,7 @@ public class YH_JNI_main {
         }
         System.out.println(System.currentTimeMillis() - now);
 
+
 //        System.out.println("---------------------------");
 //        IdentityCard.IdentityCardTrans("assert/2.jpg", "assert/out-2.jpg");
         System.out.println(new BlankPageDetectDLL().BlankPageDetect("assert/中文linux/7.jpg"));

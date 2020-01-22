@@ -471,8 +471,12 @@ task copyJni(type: Copy,dependsOn: jar) {
     into "$buildDir/output/jnilibs"
 }
 
+task copyJarLibs(type: Copy,dependsOn: jar) {
+    from fileTree("libs")
+    into "$buildDir/output/libs"
+}
 
-task copyJarAndJni(type: Copy,dependsOn: copyJni) {
+task copyJarAndJni(type: Copy,dependsOn: [copyJni,copyJarLibs]) {
     shouldRunAfter jar
     from jar.archiveFile
     into "$buildDir/output"
