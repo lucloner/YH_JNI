@@ -26,6 +26,8 @@ public class YH_JNI_main {
     public static void main(String[] args) {
         initJnilibPath();
         Common.loadOpenCV();
+        System.loadLibrary("hello");
+        System.loadLibrary("hello01");
         System.loadLibrary("BlankPage_Detect");
         System.loadLibrary("IdentityCard");
         System.loadLibrary("RemoveBlackBorder");
