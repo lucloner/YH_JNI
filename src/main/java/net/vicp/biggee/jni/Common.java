@@ -22,7 +22,7 @@ public class Common {
         enhanceImage(new File("D:\\src\\tiff_CCITT_T.6\\assert\\t\\MYSCAN_20200120_0005.TIF"));
     }
 
-    public static File enhanceImage(File img) {
+    public static void loadOpenCV() {
         if (!opencv_loaded) {
             try {
                 YH_JNI_main.addDir("libs" + File.separator + "windows" + File.separator + "x64");
@@ -32,6 +32,10 @@ public class Common {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static File enhanceImage(File img) {
+        loadOpenCV();
 
         final Mat src = Imgcodecs.imread(img.getAbsolutePath());
         Mat tmp1 = new Mat(), tmp2 = new Mat(), dst = new Mat();
