@@ -15,7 +15,7 @@ import java.io.IOException;
  * @create: 2019-12-02 18:00
  **/
 public class Common {
-    private static boolean opencv_loaded = false;
+    public static boolean opencv_loaded = false;
 
     public static void main(String[] args) {
         //test
