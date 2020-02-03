@@ -35,8 +35,6 @@ public class Common {
     }
 
     public static File enhanceImage(File img) {
-        loadOpenCV();
-
         final Mat src = Imgcodecs.imread(img.getAbsolutePath());
         Mat tmp1 = new Mat(), tmp2 = new Mat(), dst = new Mat();
         Imgproc.GaussianBlur(src, tmp1, new Size(3, 3), 0);
@@ -44,6 +42,10 @@ public class Common {
         Imgproc.threshold(tmp2, dst, 254, 255, Imgproc.THRESH_BINARY);
         final File result = new File(img.getParent(), "5_" + img.getName() + "_enhanced.jpg");
         Imgcodecs.imwrite(result.getAbsolutePath(), dst);
+        src.release();
+        tmp1.release();
+        tmp2.release();
+        dst.release();
         if (result.exists()) {
             return result;
         }
