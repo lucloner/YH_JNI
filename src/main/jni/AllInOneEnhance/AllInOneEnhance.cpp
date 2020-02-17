@@ -182,33 +182,7 @@ double drawDetectedLines(Mat& result,vector<Vec2f> lines){
         int temp_max;
 
 	    if (abs(theta) <CV_PI/4. || theta > 3.*CV_PI/4.)
-		{  // 若检测为垂直线,直线交于图片的上下两边,先找交点
-		    //计算偏移
-            temp_offset=v_theta_offset;
-            temp_max=v_theta_fix_max;
-    		if(theta_sum>=temp_max){
-        	    temp_offset=theta;
-        	    temp_max=theta_sum;
-        	}
-       		if(abs(temp_offset)<CV_PI/8.){
-       		    theta-=temp_offset;
-       		    v_theta_offset=temp_offset;
-       		    v_theta_fix_max=temp_max;
-       		    theta_offset=temp_offset;
-       		}
-       		//计算竖线数量
-            if(abs(theta)<theta_range||abs(CV_PI-theta)<theta_range){
-                int sum_v_grid=max(v_grid[(int)(v_x_1/v_grid_length)]++,v_grid[(int)(v_x_2/v_grid_length)]++);
-                if(sum_v_grid<3){
-                    sum_vertical++;
-                }
-#if (DEBUG!=0)
-                cout << sum_vertical << " sum_vertical,sum_v_grid " << sum_v_grid << endl;
-                cv::Point pt1(v_x_1, v_y_1);
-                cv::Point pt2(v_x_2, v_y_2);
-                cv::line(result, pt1, pt2, cv::Scalar(0,0,255), 1);
-#endif
-            }
+		{
 		}
 		else // 若检测为水平线,直线交于图片的左右两边,先找交点
 		{
@@ -248,14 +222,7 @@ double drawDetectedLines(Mat& result,vector<Vec2f> lines){
 		++it;
 	}
 
-	if(direction){
-	    return h_theta_offset;
-	}
-	else {
-	    return v_theta_offset;
-	}
-
-	return INT_MIN;
+	return h_theta_offset;
 }
 
 //通过霍夫变换计算角度
@@ -345,7 +312,7 @@ double CalcDegree(const Mat &srcImage, double &degree)
         cout << "lineCnt " << lineCnt << ", cur " << cur << ", min " << curmin << ", max " << curmax << endl;
 #endif
         if(cur<=1&&lineCnt<=3){
-            return INT_MAX;
+            //return INT_MAX;
         }
         else if(lineCnt<=3){ //要缩很小
             curmax=min(curmax,cur);
@@ -375,7 +342,7 @@ double CalcDegree(const Mat &srcImage, double &degree)
 
         if(curmin++>=curmax--){
             if(lineCnt<=3){
-                return INT_MAX;
+                //return INT_MAX;
             }
             break;
         }
@@ -446,15 +413,16 @@ jobject* setJobject(JNIEnv *env, jclass* cls, jobject* data,const string* dataFi
     return data;
 }
 
-void rotate_arbitrarily_angle(Mat &src,Mat &dst,float angle)
+void rotate_arbitrarily_angle(Mat &src,Mat &dst,float radian)
 {
-    float radian = (float) (angle /180.0 * CV_PI);
+    //float radian = (float) (angle /180.0 * CV_PI);
+    float angle = (float) (radian *180.0 / CV_PI);
 
     //填充图像
     int maxBorder =(int) (max(src.cols, src.rows)* 1.414 ); //即为sqrt(2)*max
     int dx = (maxBorder - src.cols)/2;
     int dy = (maxBorder - src.rows)/2;
-    copyMakeBorder(src, dst, dy, dy, dx, dx, BORDER_CONSTANT);
+    copyMakeBorder(src, dst, dy, dy, dx, dx, BORDER_CONSTANT,0xFFFFFF);
 
     //旋转
     Point2f center( (float)(dst.cols/2) , (float) (dst.rows/2));
@@ -515,7 +483,7 @@ JNIEXPORT jdouble JNICALL Java_com_AllInOneEnhance_enhance
         result = CalcDegree(thresh, degree);
         cout << "\t" << result << "\t<-AllInOneEnhance result,image[\t" << c_str << "\t](\t" << image_width << "\t,\t"
             << image_height << "\t)theta offset(deg):\t" << theta_offset/CV_PI*180 << endl;
-        rotate_arbitrarily_angle(thresh,dest,theta_offset);
+        rotate_arbitrarily_angle(thresh,dest,-theta_offset);
         imwrite(destpath,dest);
 	}catch (cv::Exception e) {
         cout << "[Java_com_BlankPageDetectDLL_BlankPageDetect]:" << e.msg << endl;
