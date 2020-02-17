@@ -1,5 +1,3 @@
-import net.vicp.biggee.jni.YH_JNI_main;
-
 /**
  * @program: YH_JNI
  * @description:
@@ -10,10 +8,10 @@ import net.vicp.biggee.jni.YH_JNI_main;
 class HelloWorld {
 
 
-    static {
-        YH_JNI_main.initJnilibPath();
-        System.loadLibrary("hello");
-    }
+//    static {
+//        YH_JNI_main.initJnilibPath();
+//        System.loadLibrary("hello");
+//    }
 
     public static void main(String[] args) {
         new HelloWorld().print();

@@ -6,9 +6,9 @@
  **/
 
 class HelloWorld01 {
-    static {
-        System.loadLibrary("hello01");
-    }
+//    static {
+//        System.loadLibrary("hello01");
+//    }
 
     public native void print();
 }

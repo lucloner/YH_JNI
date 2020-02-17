@@ -8,9 +8,9 @@ package com;
  **/
 public class RemoveBlackBorderDll {
 
-    static {
-        System.loadLibrary("RemoveBlackBorder");
-    }
+//    static {
+//        System.loadLibrary("RemoveBlackBorder");
+//    }
 
     public native static void RemoveBlackBorder(String SrcPath, String DstPath);
 }

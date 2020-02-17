@@ -7,9 +7,9 @@ package com;
  * @create: 2019-11-27 15:52
  **/
 public class JniDemo {
-    static {
-        System.loadLibrary("RectifyUnlineDll");
-    }
+//    static {
+//        System.loadLibrary("RectifyUnlineDll");
+//    }
 
     public native static double ImageRecify(String SrcPath, String DstPath);
 

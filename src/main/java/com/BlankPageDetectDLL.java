@@ -8,9 +8,9 @@ package com;
  **/
 public class BlankPageDetectDLL {
 
-    static {
-        System.loadLibrary("BlankPage_Detect");
-    }
+//    static {
+//        System.loadLibrary("BlankPage_Detect");
+//    }
 
     public native int BlankPageDetect(String SrcPath);
 

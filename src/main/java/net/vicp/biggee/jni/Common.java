@@ -1,5 +1,6 @@
 package net.vicp.biggee.jni;
 
+import com.AllInOneEnhance;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -18,8 +19,9 @@ public class Common {
     public static boolean opencv_loaded = false;
 
     public static void main(String[] args) {
-        //test
-        enhanceImage(new File("D:\\src\\tiff_CCITT_T.6\\assert\\t\\MYSCAN_20200120_0005.TIF"));
+        YH_JNI_main.initJnilibPath();
+        System.loadLibrary("AllInOneEnhance");
+        AllInOneEnhance.enhance("D:\\picTest\\1\\MYSCAN10.TIF", "D:\\picTest\\1\\jni.jpg");
     }
 
     public static void loadOpenCV() {
